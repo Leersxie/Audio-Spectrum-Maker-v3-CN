@@ -77,7 +77,13 @@
     })();
 
     window.addEventListener('message', async (e) => {
-      if (!e.data || e.data.type !== 'load') return;
+      if (!e.data) return;
+      // 关闭预览时由父页面发送，停止所有脚本与声音
+      if (e.data.type === 'stop') {
+        try { vm.stopAll(); } catch (err) { console.warn('stop failed:', err.message); }
+        return;
+      }
+      if (e.data.type !== 'load') return;
       try {
         loadingEl.style.display = 'flex';
         await scaffolding.loadProject(e.data.data);
