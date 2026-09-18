@@ -518,6 +518,15 @@ function closeScratchPreview() {
   if (scratchPreviewModal) {
     scratchPreviewModal.classList.add('hidden');
   }
+  // 停止预览 iframe 内的播放（防止关闭后仍发声）
+  const scratchPreviewIframe = document.getElementById('scratchPreviewIframe');
+  if (scratchPreviewIframe && scratchPreviewIframe.contentWindow) {
+    try {
+      scratchPreviewIframe.contentWindow.postMessage({ type: 'stop' }, window.location.origin);
+    } catch (error) {
+      console.warn('Scratch 预览停止失败:', error);
+    }
+  }
 }
 
 const INITIAL_FILE_DISPLAY_TEXT = '请选择音频文件 (.mp3, .wav, .aac, .flac ...)';
