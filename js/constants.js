@@ -109,3 +109,4 @@ export const CIRCLE_BAR_SCALE_IN = 0.50;
 export const ANGLE_OFFSET_TOP = -Math.PI / 2;
 export const FULL_CIRCLE_RADIAN = Math.PI * 2;
 export const HALF_DIVISOR = 2;
+
