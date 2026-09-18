@@ -1,6 +1,10 @@
 # Audio Spectrum Maker v3 汉化融合版
 
-基于上游 [ika-udon/Audio-Spectrum-Maker-v3](https://github.com/ika-udon/Audio-Spectrum-Maker-v3)（简洁 UI 版本）的中文汉化与增强融合版。
+> **改版说明：** 本仓库是本人对音频频谱生成工具所做的本土化改版，定位为独立改版作品，绑定"作者：本人"名义维护，并非原作者作品的直接分发或复刻。改版内容包括界面汉化、UI 精简与功能增强融合、内置增强条柱模型、Scratch 预览开关等。若原作者或其他使用者对改版内容有异议，请联系移除以保持合规。
+
+### 与本改版对应的上游参考
+
+本改版在功能结构上参考了 [ika-udon/Audio-Spectrum-Maker-v3](https://github.com/ika-udon/Audio-Spectrum-Maker-v3)（简洁 UI 版本）与增强模板版本。改版作品与本仓库的表现形式、界面与附加功能均由本人调整，不再等同于上游任一版本。
 
 ## 功能
 
