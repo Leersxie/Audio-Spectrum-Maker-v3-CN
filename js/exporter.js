@@ -1,6 +1,6 @@
 /**
- * エクスポートモジュール
- * 波形データ（.txt）および Scratch プロジェクト（.sb3）の生成・保存を行います。
+ * 导出模块
+ * 负责生成、保存波形数据（.txt）以及 Scratch 项目（.sb3）。
  */
 
 import {
@@ -13,7 +13,7 @@ import {
 import { generateUuid } from './utils.js';
 
 /**
- * 抜け殻.sb3 ファイルを読み込みます（ローカル優先、失敗時はリモートにフォールバック）
+ * 读取模板 .sb3 文件（优先本地，失败时回退到远程）
  * @returns {Promise<ArrayBuffer>}
  */
 export async function loadBaseSb3() {
@@ -34,9 +34,9 @@ export async function loadBaseSb3() {
 }
 
 /**
- * Blobをファイルとしてブラウザでダウンロードさせます
- * @param {Blob} blob - 保存対象のBlob
- * @param {string} filename - 保存ファイル名
+ * 让浏览器将 Blob 作为文件下载
+ * @param {Blob} blob - 要保存的 Blob
+ * @param {string} filename - 保存文件名
  */
 function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -48,9 +48,9 @@ function triggerDownload(blob, filename) {
 }
 
 /**
- * 波形データをプレーンテキスト (.txt) として保存します
- * @param {string[]} processedDataArray - 各フレームのエンコード文字列配列
- * @param {string} settingsHeader - ヘッダー情報文字列
+ * 将波形数据保存为纯文本（.txt）
+ * @param {string[]} processedDataArray - 各帧的编码字符串数组
+ * @param {string} settingsHeader - 头部信息字符串
  */
 export function exportAsWaveformTxt(processedDataArray, settingsHeader) {
   const finalOutput = settingsHeader + '\n' + processedDataArray.join('\n');
@@ -59,11 +59,11 @@ export function exportAsWaveformTxt(processedDataArray, settingsHeader) {
 }
 
 /**
- * 波形データと選択されたオーディオファイルを埋め込んだ Scratch (.sb3) を生成・保存します
- * @param {ArrayBuffer} baseSb3Content - 抜け殻.sb3 のバイナリデータ
- * @param {File} selectedAudioFile - ユーザーが選択した音源ファイル
- * @param {string[]} processedDataArray - 各フレームのエンコード文字列配列
- * @param {string} settingsHeader - ヘッダー情報文字列
+ * 生成、保存嵌入波形数据与所选音频文件后的 Scratch (.sb3)
+ * @param {ArrayBuffer} baseSb3Content - 模板 .sb3 的二进制数据
+ * @param {File} selectedAudioFile - 用户选择的音频源文件
+ * @param {string[]} processedDataArray - 各帧的编码字符串数组
+ * @param {string} settingsHeader - 头部信息字符串
  */
 export async function exportAsScratchSb3(
   baseSb3Content,
@@ -78,7 +78,7 @@ export async function exportAsScratchSb3(
     throw new Error('尚未选择音频源文件。');
   }
 
-  // JSZip を動的に読み込み
+  // 动态加载 JSZip
   const jszipModule = await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');
   const JSZip = jszipModule.default || jszipModule.JSZip || window.JSZip;
 
@@ -113,18 +113,18 @@ export async function exportAsScratchSb3(
     stageTarget.lists[spectrumListId] = [STAGE_TARGET_LIST_NAME, []];
   }
 
-  // 設定ヘッダーを配列先頭に付加したリストデータを代入
+  // 在数组开头附加设置头部信息后，代入列表数据
   const fullListData = [settingsHeader, ...processedDataArray];
   stageTarget.lists[spectrumListId][1] = fullListData;
 
-  // project.json をzipに再配置
+  // 将 project.json 重新配置到 zip 中
   zip.file('project.json', JSON.stringify(projectJson));
 
-  // 選択された音源ファイルを所定のハッシュ名で追加
+  // 将所选的音频源文件以规定哈希名添加
   const audioBuffer = await selectedAudioFile.arrayBuffer();
   zip.file(SB3_AUDIO_INTERNAL_FILENAME, audioBuffer);
 
-  // 新規SB3ファイルを生成してダウンロード
+  // 生成新的 SB3 文件并下载
   const newSb3Blob = await zip.generateAsync({ type: 'blob' });
   triggerDownload(newSb3Blob, 'audio_spectrum.sb3');
   return newSb3Blob;

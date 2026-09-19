@@ -1,6 +1,6 @@
 /**
- * オフライン解析 Web Worker モジュール
- * マルチスレッド環境で各スレッドに割り当てられたフレーム範囲のFFT解析を並列実行します。
+ * 离线解析 Web Worker 模块
+ * 在多线程环境中，对分配给各线程的帧范围并行执行 FFT 解析。
  */
 
 import { DEFAULT_FFT_SIZE } from './constants.js';
@@ -44,7 +44,7 @@ self.addEventListener('message', (event) => {
     fastFft.realTransform(realInput, realOut, imagOut);
     fastFft.getByteFrequencyData(realOut, imagOut, outputBytes, f * halfFftSize);
 
-    // 100フレームごとに進捗を通知
+    // 每 100 帧通知一次进度
     if (f > 0 && f % 100 === 0) {
       self.postMessage({
         type: 'PROGRESS',
@@ -54,7 +54,7 @@ self.addEventListener('message', (event) => {
     }
   }
 
-  // Transferable Objects によるゼロコピー転送で結果を返送
+  // 通过 Transferable Object 进行零拷贝传输，返回结果
   self.postMessage(
     {
       type: 'COMPLETE',

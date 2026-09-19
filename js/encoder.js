@@ -1,6 +1,6 @@
 /**
- * 波形データエンコードモジュール
- * 各バーの高さデータをScratchのリスト形式で扱える文字列へ変換する純粋関数群です。
+ * 波形数据编码模块
+ * 将各条柱的高度数据转换为可用 Scratch 列表形式处理的字符串的一批纯函数。
  */
 
 import {
@@ -20,9 +20,9 @@ import {
 } from './constants.js';
 
 /**
- * 1本のバーの高さを1文字のエンコード文字に変換する純粋関数
- * @param {number} height - バーの高さ (0〜)
- * @returns {string} エンコードされた1文字
+ * 将 1 根条柱的高度转换为 1 个编码字符的纯函数
+ * @param {number} height - 条柱的高度 (0〜)
+ * @returns {string} 编码后的 1 个字符
  */
 export function encodeBarValue(height) {
   const cappedHeight = Math.min(height, MAX_RECORDED_BAR_HEIGHT);
@@ -52,10 +52,10 @@ export function encodeBarValue(height) {
 }
 
 /**
- * 記録されたすべてのフレームのバー高さをエンコードし、Scratchリスト用文字列配列に変換する純粋関数
- * @param {number[][]} heights - 各フレームのバーの高さ配列
- * @param {number} interval - サンプリング間隔 (n分の1)
- * @returns {string[]} フレームごとのエンコード文字列配列
+ * 将记录的所有帧的条柱高度编码，转换为 Scratch 列表用字符串数组的纯函数
+ * @param {number[][]} heights - 各帧的条柱高度数组
+ * @param {number} interval - 采样间隔 (取 n 分之一)
+ * @returns {string[]} 每帧对应的编码字符串数组
  */
 export function processRecordedBarHeights(heights, interval = 1) {
   const safeInterval = Math.max(1, interval);
@@ -69,7 +69,7 @@ export function processRecordedBarHeights(heights, interval = 1) {
     processedFrames.push(processedBarValues.join(''));
   }
 
-  // 完全無音（ダブルクォートのみで構成される行）は空文字列に変換し、空行を残す
+  // 将完全无声（仅由双引号构成的行）转换为空字符串，并保留空行
   return processedFrames.map((line) => {
     return /^"+$/.test(line.trim()) ? '' : line;
   });

@@ -1,31 +1,31 @@
 /**
- * ⑤ WebAssembly FFT アダプタモジュール
- * Wasm+SIMD 版FFTの動的ロードと、FastFFT 互換APIの提供を行います。
- * Wasm/SIMD 非対応ブラウザでは Pure JS 版 (fft.js) へ自動フォールバックします。
+ * ⑤ WebAssembly FFT 适配器模块
+ * 提供 Wasm+SIMD 版 FFT 的动态加载，以及与 FastFFT 兼容的 API。
+ * 在不支持 Wasm/SIMD 的浏览器中，将自动回退到 Pure JS 版 (fft.js)。
  */
 
 import { DEFAULT_FFT_SIZE, FFT_MIN_DECIBELS, FFT_MAX_DECIBELS } from './constants.js';
 import { FastFFT } from './fft.js';
 
 /**
- * Wasm SIMD の実行サポートを検出します
- * @returns {boolean} SIMD対応の場合 true
+ * 检测 Wasm SIMD 的执行支持情况
+ * @returns {boolean} 支持 SIMD 时返回 true
  */
 function detectWasmSimdSupport() {
   try {
-    // Wasmの基本サポート確認
+    // 确认 Wasm 的基本支持
     if (typeof WebAssembly !== 'object') {
       return false;
     }
-    // SIMD命令を含む最小Wasmバイナリのバリデーション
-    // (v128.const 命令を含むモジュール)
+    // 包含 SIMD 指令的最小 Wasm 二进制校验
+    // (包含 v128.const 指令的模块)
     const simdTestBytes = new Uint8Array([
-      0x00, 0x61, 0x73, 0x6d, // マジックナンバー
-      0x01, 0x00, 0x00, 0x00, // バージョン
-      0x01, 0x05, 0x01,       // typeセクション
+      0x00, 0x61, 0x73, 0x6d, // 魔法数字
+      0x01, 0x00, 0x00, 0x00, // 版本
+      0x01, 0x05, 0x01,       // type 段
       0x60, 0x00, 0x01, 0x7b, // func () -> v128
-      0x03, 0x02, 0x01, 0x00, // functionセクション
-      0x0a, 0x0a, 0x01,       // codeセクション
+      0x03, 0x02, 0x01, 0x00, // function 段
+      0x0a, 0x0a, 0x01,       // code 段
       0x08, 0x00,             // body size, locals
       0xfd, 0x0c,             // v128.const
       0x00, 0x00, 0x00, 0x00,
@@ -41,14 +41,14 @@ function detectWasmSimdSupport() {
 }
 
 /**
- * Wasm FFT ラッパークラス (FastFFT 互換API)
+ * Wasm FFT 包装类 (FastFFT 兼容API)
  */
 class WasmFFT {
   constructor(wasmModule, size) {
     this.module = wasmModule;
     this.size = size;
 
-    // Wasm関数のバインド
+    // 绑定 Wasm 函数
     this._init = wasmModule.cwrap('fft_init', null, ['number']);
     this._realTransform = wasmModule.cwrap('fft_real_transform', null, []);
     this._getByteFreqData = wasmModule.cwrap('fft_get_byte_frequency_data', null, ['number', 'number']);
@@ -57,10 +57,10 @@ class WasmFFT {
     this._getImagOutPtr = wasmModule.cwrap('fft_get_imag_out_ptr', 'number', []);
     this._getByteOutPtr = wasmModule.cwrap('fft_get_byte_out_ptr', 'number', []);
 
-    // FFTエンジン初期化
+    // 初始化 FFT 引擎
     this._init(size);
 
-    // ゼロコピー用バッファビューの作成
+    // 创建用于零拷贝的缓冲区视图
     const heap = wasmModule.HEAPF32.buffer;
     const heapU8 = wasmModule.HEAPU8;
     const halfSize = size / 2;
@@ -77,29 +77,29 @@ class WasmFFT {
   }
 
   /**
-   * 実数専用FFT (FastFFT互換API)
-   * @param {Float32Array} realInput - 実数入力信号
-   * @param {Float32Array} realOut - 実部出力バッファ
-   * @param {Float32Array} imagOut - 虚部出力バッファ
+   * 实数专用 FFT (FastFFT 兼容API)
+   * @param {Float32Array} realInput - 实数输入信号
+   * @param {Float32Array} realOut - 实部输出缓冲区
+   * @param {Float32Array} imagOut - 虚部输出缓冲区
    */
   realTransform(realInput, realOut, imagOut) {
-    // 入力データをWasmメモリにコピー
+    // 将输入数据复制到 Wasm 内存
     this.inputView.set(realInput);
-    // Wasm側でFFT実行
+    // 在 Wasm 侧执行 FFT
     this._realTransform();
-    // 結果をJS側バッファにコピー
+    // 将结果复制到 JS 侧缓冲区
     realOut.set(this.realOutView);
     imagOut.set(this.imagOutView);
   }
 
   /**
-   * デシベル変換 + バイト量子化 (FastFFT互換API)
-   * @param {Float32Array} real - FFT実部
-   * @param {Float32Array} imag - FFT虚部
-   * @param {Uint8Array} byteOut - 出力バッファ
-   * @param {number} outOffset - 出力オフセット
-   * @param {number} minDecibels - 最小デシベル
-   * @param {number} maxDecibels - 最大デシベル
+   * 分贝转换 + 字节量化 (FastFFT 兼容API)
+   * @param {Float32Array} real - FFT 实部
+   * @param {Float32Array} imag - FFT 虚部
+   * @param {Uint8Array} byteOut - 输出缓冲区
+   * @param {number} outOffset - 输出偏移
+   * @param {number} minDecibels - 最小分贝
+   * @param {number} maxDecibels - 最大分贝
    */
   getByteFrequencyData(
     real,
@@ -109,12 +109,12 @@ class WasmFFT {
     minDecibels = FFT_MIN_DECIBELS,
     maxDecibels = FFT_MAX_DECIBELS
   ) {
-    // 入力をWasmメモリにコピー (直前の realTransform の結果がまだ残っている場合はスキップ可能)
+    // 将输入复制到 Wasm 内存 (如果上一次 realTransform 的结果仍然存在，则可能跳过)
     this.realOutView.set(real);
     this.imagOutView.set(imag);
-    // Wasm側でデシベル変換
+    // 在 Wasm 侧进行分贝转换
     this._getByteFreqData(minDecibels, maxDecibels);
-    // 結果をJS側バッファにコピー
+    // 将结果复制到 JS 侧缓冲区
     const halfSize = this.size / 2;
     for (let i = 0; i < halfSize; i++) {
       byteOut[outOffset + i] = this.byteOutView[i];
@@ -122,12 +122,12 @@ class WasmFFT {
   }
 
   /**
-   * ゼロコピー版: 入力バッファに直接書き込み → 変換 → 結果をゼロコピーで出力
-   * Worker内の高速パイプライン用
-   * @param {Uint8Array} byteOut - 出力バッファ
-   * @param {number} outOffset - 出力オフセット
-   * @param {number} minDecibels - 最小デシベル
-   * @param {number} maxDecibels - 最大デシベル
+   * 零拷贝版: 直接写入输入缓冲区 → 转换 → 以零拷贝输出结果
+   * 用于 Worker 内的高速流水线
+   * @param {Uint8Array} byteOut - 输出缓冲区
+   * @param {number} outOffset - 输出偏移
+   * @param {number} minDecibels - 最小分贝
+   * @param {number} maxDecibels - 最大分贝
    */
   zeroCopyTransformAndQuantize(byteOut, outOffset, minDecibels, maxDecibels) {
     this._realTransform();
@@ -140,19 +140,19 @@ class WasmFFT {
 }
 
 /**
- * 最適なFFTエンジンを生成します (Wasm優先、フォールバック付き)
- * @param {number} size - FFTサイズ
- * @returns {Promise<FastFFT | WasmFFT>} FFTエンジンインスタンス
+ * 生成最优 FFT 引擎 (优先 Wasm，含回退机制)
+ * @param {number} size - FFT 大小
+ * @returns {Promise<FastFFT | WasmFFT>} FFT 引擎实例
  */
 export async function createOptimalFFT(size = DEFAULT_FFT_SIZE) {
-  // Wasm+SIMD サポートチェック
+  // 检查 Wasm+SIMD 支持
   if (!detectWasmSimdSupport()) {
     console.warn('[WasmFFTAdapter] SIMD非対応: Pure JS (FastFFT) を使用します');
     return new FastFFT(size);
   }
 
   try {
-    // Wasmモジュールの動的ロード
+    // 动态加载 Wasm 模块
     const wasmUrl = new URL('./wasm/fftSIMD.js', import.meta.url);
     const wasmModule = await import(wasmUrl.href);
     const createModule = wasmModule.default || wasmModule.createFFTModule;

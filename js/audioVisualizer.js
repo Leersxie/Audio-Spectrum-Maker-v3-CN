@@ -1,6 +1,6 @@
 /**
- * オーディオ解析および波形描画クラスモジュール
- * Web Workers によるマルチスレッド並列解析と、キャッシュされた周波数データによる即時再計算・プレビュー描画を提供します。
+ * 音频解析及波形绘制类模块
+ * 提供 Web Workers 多线程并行解析，以及基于已缓存频率数据的即时重算・预览绘制。
  */
 
 import {
@@ -33,11 +33,11 @@ import {
 import { FastFFT } from './fft.js';
 
 /**
- * 帯域内の最大値（ピーク）を取得します（最も強い音に敏感に反応）
- * @param {Float32Array} data - 周波数データ配列
- * @param {number} start - 開始インデックス（クランプ済み）
- * @param {number} end - 終了インデックス（クランプ済み）
- * @returns {number} 最大値
+ * 获取频带内的最大值（峰值）(对最强的声音敏感反应)
+ * @param {Float32Array} data - 频率数据数组
+ * @param {number} start - 起始索引（已钳制）
+ * @param {number} end - 结束索引（已钳制）
+ * @returns {number} 最大值
  */
 function samplePeak(data, start, end) {
   let maxVal = 0;
@@ -51,11 +51,11 @@ function samplePeak(data, start, end) {
 }
 
 /**
- * 帯域内の算術平均値を取得します（全体を滑らかに均す従来の方式）
- * @param {Float32Array} data - 周波数データ配列
- * @param {number} start - 開始インデックス（クランプ済み）
- * @param {number} end - 終了インデックス（クランプ済み）
- * @returns {number} 平均値
+ * 获取频带内的算术平均值（将整体平滑均摊的传统方式）
+ * @param {Float32Array} data - 频率数据数组
+ * @param {number} start - 起始索引（已钳制）
+ * @param {number} end - 结束索引（已钳制）
+ * @returns {number} 平均值
  */
 function sampleAverage(data, start, end) {
   let sum = 0;
@@ -67,11 +67,11 @@ function sampleAverage(data, start, end) {
 }
 
 /**
- * 帯域内の実効値 (RMS: Root Mean Square) を取得します（聴感上の音量感に近い指標）
- * @param {Float32Array} data - 周波数データ配列
- * @param {number} start - 開始インデックス（クランプ済み）
- * @param {number} end - 終了インデックス（クランプ済み）
- * @returns {number} RMS値
+ * 获取频带内的有效值 (RMS: Root Mean Square)（接近听觉上的音量感指标）
+ * @param {Float32Array} data - 频率数据数组
+ * @param {number} start - 起始索引（已钳制）
+ * @param {number} end - 结束索引（已钳制）
+ * @returns {number} RMS 值
  */
 function sampleRms(data, start, end) {
   let sumSq = 0;
@@ -84,11 +84,11 @@ function sampleRms(data, start, end) {
 }
 
 /**
- * 帯域内のピークと平均の加重ブレンド値を取得します
- * @param {Float32Array} data - 周波数データ配列
- * @param {number} start - 開始インデックス（クランプ済み）
- * @param {number} end - 終了インデックス（クランプ済み）
- * @returns {number} ブレンド値
+ * 获取频带内峰值与平均的加权混合值
+ * @param {Float32Array} data - 频率数据数组
+ * @param {number} start - 起始索引（已钳制）
+ * @param {number} end - 结束索引（已钳制）
+ * @returns {number} 混合值
  */
 function sampleBlend(data, start, end) {
   let sum = 0;
@@ -106,7 +106,7 @@ function sampleBlend(data, start, end) {
 }
 
 /**
- * ブラウザの描画やUIイベント処理にメインスレッドの制御を一時的に譲渡します
+ * 临时将主线程的控制权让渡给浏览器的绘制或 UI 事件处理
  * @returns {Promise<void>}
  */
 function yieldToMainThread() {
@@ -119,10 +119,10 @@ function yieldToMainThread() {
 }
 
 /**
- * 設定値から対数補間・サンプリング範囲などの計算コンテキストを事前計算する純粋関数
- * @param {object} settings - 波形パラメータ設定
- * @param {number} sampleRate - サンプリング周波数
- * @returns {object} 計算コンテキスト
+ * 根据设置值预计算对数插值・采样范围等计算上下文的纯函数
+ * @param {object} settings - 波形参数设置
+ * @param {number} sampleRate - 采样频率
+ * @returns {object} 计算上下文
  */
 function prepareCalculationContext(settings, sampleRate) {
   const {
@@ -214,15 +214,15 @@ function prepareCalculationContext(settings, sampleRate) {
 }
 
 /**
- * 単一フレームの周波数データを対数補間・スムージングし、バー高さ配列を算出する純粋関数
- * @param {Uint8Array} dataArray - 生周波数データ
- * @param {boolean} isFirstFrame - 先頭フレームか否か
- * @param {Float32Array} smoothedDisplayData - 前フレームからのアタック/ディケイ累積配列
- * @param {Float32Array} currentFrameInterpolatedData - 補間データ用作業バッファ
- * @param {Float32Array} tempSmoothedData - スムージング用作業バッファ
- * @param {Float32Array | null} prefixSum - 累積和用作業バッファ
- * @param {object} calcCtx - 事前計算コンテキスト
- * @returns {Uint16Array} バー高さ配列
+ * 对单帧频率数据进行对数插值・平滑处理，计算条柱高度数组的纯函数
+ * @param {Uint8Array} dataArray - 原始频率数据
+ * @param {boolean} isFirstFrame - 是否为第一帧
+ * @param {Float32Array} smoothedDisplayData - 来自上一帧的起音/衰减累积数组
+ * @param {Float32Array} currentFrameInterpolatedData - 插值数据用工作缓冲区
+ * @param {Float32Array} tempSmoothedData - 平滑处理用工作缓冲区
+ * @param {Float32Array | null} prefixSum - 累加和用工作缓冲区
+ * @param {object} calcCtx - 预计算上下文
+ * @returns {Uint16Array} 条柱高度数组
  */
 function processFrameData(
   dataArray,
@@ -252,7 +252,7 @@ function processFrameData(
     computeRangeValue
   } = calcCtx;
 
-  // 1. 対数補間
+  // 1. 对数插值
   for (let i = 0; i < numSmoothingPoints; i++) {
     const floorIdx = virtualIndicesFloor[i];
     const ceilIdx = virtualIndicesCeil[i];
@@ -269,7 +269,7 @@ function processFrameData(
     }
   }
 
-  // 2. アタック / ディケイ
+  // 2. 起音 / 衰减
   if (isFirstFrame) {
     for (let i = 0; i < numSmoothingPoints; i++) {
       smoothedDisplayData[i] = currentFrameInterpolatedData[i];
@@ -288,7 +288,7 @@ function processFrameData(
     }
   }
 
-  // 3. スムースカーブ
+  // 3. 平滑曲线
   if (smoothCurve > 0 && prefixSum) {
     prefixSum[0] = 0;
     for (let i = 0; i < numSmoothingPoints; i++) {
@@ -311,7 +311,7 @@ function processFrameData(
     }
   }
 
-  // 4. 各バーの高さ計算
+  // 4. 计算各条柱的高度
   const frameBarHeights = new Uint16Array(numBars);
   for (let i = 0; i < numBars; i++) {
     const start = barRangeStarts[i];
@@ -325,12 +325,12 @@ function processFrameData(
 }
 
 /**
- * バーの高さとキャンバス基準長からHSLカラー文字列を計算する純粋関数
- * @param {number} barHeight - バーの高さ
- * @param {number} referenceLength - 基準長さ（キャンバス高さまたは半径）
- * @param {number} peakBrightnessScale - ピーク輝度スケール
+ * 根据条柱高度与画布基准长度计算 HSL 颜色字符串的纯函数
+ * @param {number} barHeight - 条柱的高度
+ * @param {number} referenceLength - 基准长度（画布高度或半径）
+ * @param {number} peakBrightnessScale - 峰值辉度比例
  * @param {number} currentHue - 色相
- * @returns {string} HSLカラー文字列
+ * @returns {string} HSL 颜色字符串
  */
 function computeBarLightnessColor(barHeight, referenceLength, peakBrightnessScale, currentHue) {
   const normalizedHeight = referenceLength > 0 ? Math.min(1.0, barHeight / referenceLength) : 0;
@@ -349,29 +349,29 @@ export class AudioVisualizer {
     this.audioContext = null;
     this.fastFft = new FastFFT(DEFAULT_FFT_SIZE);
 
-    // 第1層キャッシュ: 全フレームの生周波数ビンデータ (連続バッファおよびビュー配列)
+    // 第一层缓存: 所有帧的原始频率数据 (连续缓冲区以及视图数组)
     this.rawFrequencyBuffer = null;
     this.cachedRawFrequencyFrames = [];
 
-    // 第2層キャッシュ: 現在の設定に基づいて計算された各フレームのバー高さ配列
+    // 第二层缓存: 根据当前设置计算出的各帧条柱高度数组
     this.recordedBarHeights = [];
 
-    // カスタムバー描画関数 (バーエディター連動用・引き伸ばし歪み防止)
+    // 自定义条柱绘制函数 (与条柱编辑器联动・防止拉伸变形)
     this.customBarDrawer = null;
 
-    // 解析状態フラグ
+    // 解析状态标志
     this.isAnalyzing = false;
     this.audioDuration = 0;
     this.sampleRate = 44100;
 
-    // 非同期再計算および即時プレビュー用状態
+    // 异步重算以及即时预览用状态
     this.recomputeTaskId = 0;
     this.isRecomputing = false;
     this.recomputePromise = null;
     this.previewBarHeights = null;
     this.previewFrameIndex = -1;
 
-    // 設定値
+    // 设置值
     this.settings = {
       minFrequency: 20,
       maxFrequency: 24000,
@@ -391,11 +391,11 @@ export class AudioVisualizer {
   }
 
   /**
-   * 設定値を更新し、即時1フレームプレビューの描画と全フレームのバックグラウンド非同期再計算を開始します
-   * @param {object} newSettings - 新しい設定オブジェクト
-   * @param {number | null} currentTimeSeconds - 現在の再生位置（秒）
-   * @param {HTMLCanvasElement | null} canvas - 描画先Canvas
-   * @param {CanvasRenderingContext2D | null} ctx - 2D描画コンテキスト
+   * 更新设置值，并开始即时 1 帧预览绘制以及全帧的后台异步重算
+   * @param {object} newSettings - 新的设置对象
+   * @param {number | null} currentTimeSeconds - 当前的播放位置（秒）
+   * @param {HTMLCanvasElement | null} canvas - 绘制目标 Canvas
+   * @param {CanvasRenderingContext2D | null} ctx - 2D 绘制上下文
    */
   updateSettings(newSettings, currentTimeSeconds = null, canvas = null, ctx = null) {
     const oldSettings = { ...this.settings };
@@ -414,21 +414,21 @@ export class AudioVisualizer {
       oldSettings.samplingMethod !== this.settings.samplingMethod;
 
     if (requiresRecalculation && this.cachedRawFrequencyFrames.length > 0) {
-      // 1. 現在再生位置の1フレームのみを0.05msで即座に計算してCanvasに即反映（遅延0msの即時プレビュー）
+      // 1. 仅以约 0.05ms 立即计算当前播放位置的一帧并即时反映到 Canvas（延迟 0ms 的即时预览）
       if (currentTimeSeconds !== null && canvas && ctx) {
         this.renderInstantPreview(currentTimeSeconds, canvas, ctx);
       }
 
-      // 2. 全フレームの再計算をバックグラウンドで非同期分割実行（メインスレッドをブロックせず60FPS維持）
+      // 2. 在后台对全帧重算进行异步分块执行（不阻塞主线程，维持 60FPS）
       this.recomputePromise = this.recomputeBarHeightsAsync();
     } else if (currentTimeSeconds !== null && canvas && ctx) {
-      // 周波数の再計算が不要な表示設定変更（プレビュー形式・色・ピーク輝度など）の場合、瞬時に描画を更新 (遅延0ms)
+      // 对于无需重算频率的显示设置变更（预览形式・颜色・峰值辉度等），瞬时更新绘制 (延迟 0ms)
       this.drawAtTime(currentTimeSeconds, canvas, ctx);
     }
   }
 
   /**
-   * AudioContext を初期化します
+   * 初始化 AudioContext
    */
   ensureAudioContext() {
     if (!this.audioContext) {
@@ -439,7 +439,7 @@ export class AudioVisualizer {
   }
 
   /**
-   * AudioContext のサスペンドを解除します
+   * 解除 AudioContext 的挂起状态
    */
   async resumeContext() {
     if (this.audioContext && this.audioContext.state === 'suspended') {
@@ -448,7 +448,7 @@ export class AudioVisualizer {
   }
 
   /**
-   * 記録済みの波形高さデータを取得します
+   * 获取已记录的波形高度数据
    * @returns {number[][]}
    */
   getRecordedBarHeights() {
@@ -456,7 +456,7 @@ export class AudioVisualizer {
   }
 
   /**
-   * データが解析済みかどうかを判定します
+   * 判断数据是否已完成解析
    * @returns {boolean}
    */
   hasAnalyzedData() {
@@ -467,7 +467,7 @@ export class AudioVisualizer {
   }
 
   /**
-   * AudioBuffer から PCM データを抽出してモノラル化します
+   * 从 AudioBuffer 提取 PCM 数据并转换为单声道
    * @param {AudioBuffer} audioBuffer
    * @returns {Float32Array}
    */
@@ -489,9 +489,9 @@ export class AudioVisualizer {
   }
 
   /**
-   * オフライン解析を実行します（マルチスレッド並列処理を優先、非対応時はシングルスレッドへ自動フォールバック）
-   * @param {AudioBuffer} audioBuffer - デコード済みのAudioBuffer
-   * @param {Function} onProgress - 進捗コールバック (0.0 〜 1.0)
+   * 执行离线解析（优先多线程并行处理，不支持时自动回退到单线程）
+   * @param {AudioBuffer} audioBuffer - 已解码的 AudioBuffer
+   * @param {Function} onProgress - 进度回调 (0.0 〜 1.0)
    */
   async analyzeOffline(audioBuffer, onProgress) {
     this.isAnalyzing = true;
@@ -513,13 +513,13 @@ export class AudioVisualizer {
       }
     }
 
-    // フォールバック: メインスレッド非同期処理
+    // 回退: 主线程异步处理
     await this.analyzeOfflineSingleThread(audioBuffer, onProgress);
     this.isAnalyzing = false;
   }
 
   /**
-   * Web Workers によるマルチスレッド並列オフライン解析
+   * 通过 Web Workers 进行的多线程并行离线解析
    * @param {AudioBuffer} audioBuffer
    * @param {Function} onProgress
    */
@@ -536,7 +536,7 @@ export class AudioVisualizer {
     const pcmData = this.extractPcmData(audioBuffer);
     const totalSamples = pcmData.length;
 
-    // 連続メモリバッファの確保
+    // 预留连续内存缓冲区
     this.rawFrequencyBuffer = new Uint8Array(totalFrames * halfFftSize);
     this.cachedRawFrequencyFrames = new Array(totalFrames);
 
@@ -575,7 +575,7 @@ export class AudioVisualizer {
             updateOverallProgress();
           } else if (msg.type === 'COMPLETE') {
             const { startFrame: resStart, endFrame: resEnd, outputBytes } = msg;
-            // 連続メモリ領域へ直接配置
+            // 直接写入连续内存区域
             const byteOffset = resStart * halfFftSize;
             this.rawFrequencyBuffer.set(outputBytes, byteOffset);
 
@@ -593,7 +593,7 @@ export class AudioVisualizer {
           reject(err);
         };
 
-        // Workerへタスク送信
+        // 向 Worker 发送任务
         worker.postMessage({
           type: 'ANALYZE',
           taskId: w,
@@ -611,7 +611,7 @@ export class AudioVisualizer {
 
     await Promise.all(workerPromises);
 
-    // フレーム参照配列の構築（ゼロコピー・subarray参照）
+    // 构建帧引用数组（零拷贝・subarray 引用）
     for (let f = 0; f < totalFrames; f++) {
       const offset = f * halfFftSize;
       this.cachedRawFrequencyFrames[f] = this.rawFrequencyBuffer.subarray(
@@ -628,7 +628,7 @@ export class AudioVisualizer {
   }
 
   /**
-   * メインスレッド非同期オフライン解析（フォールバック用）
+   * 主线程异步离线解析（用于回退）
    * @param {AudioBuffer} audioBuffer
    * @param {Function} onProgress
    */
@@ -685,10 +685,10 @@ export class AudioVisualizer {
   }
 
   /**
-   * 現在の再生位置に対応する1フレームのみを即座に計算し、Canvasに描画します（遅延0msの即時プレビュー）
-   * @param {number} currentTimeSeconds - 再生位置（秒）
-   * @param {HTMLCanvasElement} canvas - 描画先Canvas
-   * @param {CanvasRenderingContext2D} ctx - 2D描画コンテキスト
+   * 仅立即计算当前播放位置对应的 1 帧并绘制到 Canvas（延迟 0ms 的即时预览）
+   * @param {number} currentTimeSeconds - 播放位置（秒）
+   * @param {HTMLCanvasElement} canvas - 绘制目标 Canvas
+   * @param {CanvasRenderingContext2D} ctx - 2D 绘制上下文
    */
   renderInstantPreview(currentTimeSeconds, canvas, ctx) {
     if (!this.cachedRawFrequencyFrames || this.cachedRawFrequencyFrames.length === 0) {
@@ -705,8 +705,8 @@ export class AudioVisualizer {
   }
 
   /**
-   * 指定したフレーム番号のバー高さをアタック・ディケイの収束を考慮して高速に局所計算します (約0.05ms)
-   * @param {number} targetFrameIndex - 算出対象のフレームインデックス
+   * 考虑起音・衰减的收敛，高速局部计算指定帧号的条柱高度 (约 0.05ms)
+   * @param {number} targetFrameIndex - 计算目标的帧索引
    * @returns {Uint16Array | null}
    */
   computeInstantPreviewHeights(targetFrameIndex) {
@@ -740,8 +740,8 @@ export class AudioVisualizer {
   }
 
   /**
-   * 全フレームのバー高さをバックグラウンドで非同期分割計算します (タイムスライス & キャンセル対応)
-   * メインスレッドを占有せず、各チャンク間でブラウザの画面描画・イベント処理へ制御を戻します
+   * 在后台对全帧条柱高度进行异步分块计算 (支持时间片 & 取消)
+   * 不占用主线程，在各分块之间把控制权交还给浏览器的画面绘制・事件处理
    * @returns {Promise<void>}
    */
   async recomputeBarHeightsAsync() {
@@ -764,10 +764,10 @@ export class AudioVisualizer {
 
     try {
       for (let frameIdx = 0; frameIdx < totalFrames; frameIdx++) {
-        // チャンク境界ごとにメインスレッドへ制御を一時譲渡（UIブロックを防止し60FPS維持）
+        // 在每个分块边界临时让渡主线程控制权（防止 UI 阻塞并维持 60FPS）
         if (frameIdx > 0 && frameIdx % RECOMPUTE_CHUNK_SIZE === 0) {
           await yieldToMainThread();
-          // 他のパラメータ操作で新しいタスクが開始された場合は即座にアボート（キャンセル）
+          // 若其他参数操作导致新任务开始，则立即中止（取消）
           if (this.recomputeTaskId !== currentTaskId) {
             return;
           }
@@ -785,7 +785,7 @@ export class AudioVisualizer {
         );
       }
 
-      // 完了時にアトミックにデータを差し替え
+      // 完成时原子性地替换数据
       if (this.recomputeTaskId === currentTaskId) {
         this.recordedBarHeights = nextBarHeights;
         this.isRecomputing = false;
@@ -800,7 +800,7 @@ export class AudioVisualizer {
   }
 
   /**
-   * キャッシュされた生周波数データから、現在の設定に基づいてバー高さを同期再計算します (初期化・テスト用)
+   * 根据已缓存的原始频率数据，基于当前设置同步重算条柱高度 (用于初始化・测试)
    */
   recomputeBarHeights() {
     if (!this.cachedRawFrequencyFrames || this.cachedRawFrequencyFrames.length === 0) {
@@ -831,7 +831,7 @@ export class AudioVisualizer {
   }
 
   /**
-   * 実行中の非同期再計算が完了するまで待機します (保存処理用)
+   * 等待正在执行的异步重算完成 (用于保存处理)
    * @returns {Promise<void>}
    */
   async waitForRecomputation() {
@@ -844,10 +844,10 @@ export class AudioVisualizer {
   }
 
   /**
-   * 指定した再生時刻（秒）に対応するフレームの波形をプレビュー描画します
-   * @param {number} currentTimeSeconds - 再生位置（秒）
-   * @param {HTMLCanvasElement} canvas - 描画先Canvas
-   * @param {CanvasRenderingContext2D} ctx - 2D描画コンテキスト
+   * 预览绘制指定播放时间（秒）对应帧的波形
+   * @param {number} currentTimeSeconds - 播放位置（秒）
+   * @param {HTMLCanvasElement} canvas - 绘制目标 Canvas
+   * @param {CanvasRenderingContext2D} ctx - 2D 绘制上下文
    */
   drawAtTime(currentTimeSeconds, canvas, ctx) {
     const frameIndex = Math.floor(currentTimeSeconds * this.settings.targetFPS);
@@ -855,7 +855,7 @@ export class AudioVisualizer {
   }
 
   /**
-   * カスタムバー描画関数を設定します（引き伸ばしによる角丸等の歪みを防ぐ処理用）
+   * 设置自定义条柱绘制函数 (用于防止拉伸导致的圆角等变形)
    * @param {Function | null} drawerFunc - (ctx, x, y, width, height) => void
    */
   setCustomBarDrawer(drawerFunc) {
@@ -863,7 +863,7 @@ export class AudioVisualizer {
   }
 
   /**
-   * 波型1 (通常波形・下端基準) の描画を行います
+   * 进行波型1 (通常波形・下边界为基准) 的绘制
    * @param {CanvasRenderingContext2D} ctx
    * @param {HTMLCanvasElement} canvas
    * @param {Uint16Array} barHeights
@@ -889,7 +889,7 @@ export class AudioVisualizer {
   }
 
   /**
-   * 波型2 (上下対称・垂直中央基準) の描画を行います
+   * 进行波型2 (上下对称・垂直中央为基准) 的绘制
    * @param {CanvasRenderingContext2D} ctx
    * @param {HTMLCanvasElement} canvas
    * @param {Uint16Array} barHeights
@@ -909,9 +909,9 @@ export class AudioVisualizer {
       const halfH = Math.max(1, Math.round(barHeight / HALF_DIVISOR));
 
       if (this.customBarDrawer) {
-        // 上半分 (通常向き)
+        // 上半部分 (常规方向)
         this.customBarDrawer(ctx, posX, centerY - halfH, barThickness, halfH);
-        // 下半分 (上下反転)
+        // 下半部分 (上下翻转)
         ctx.save();
         ctx.translate(0, centerY);
         ctx.scale(1, -1);
@@ -925,7 +925,7 @@ export class AudioVisualizer {
   }
 
   /**
-   * 円型1 (円形・外側伸長) の描画を行います
+   * 进行圆型1 (圆形・向外延伸) 的绘制
    * @param {CanvasRenderingContext2D} ctx
    * @param {HTMLCanvasElement} canvas
    * @param {Uint16Array} barHeights
@@ -962,7 +962,7 @@ export class AudioVisualizer {
   }
 
   /**
-   * 円型2 (円形・内外両方伸長) の描画を行います
+   * 进行圆型2 (圆形・内外双向延伸) 的绘制
    * @param {CanvasRenderingContext2D} ctx
    * @param {HTMLCanvasElement} canvas
    * @param {Uint16Array} barHeights
@@ -989,9 +989,9 @@ export class AudioVisualizer {
       ctx.translate(0, -baseRadius);
 
       if (this.customBarDrawer) {
-        // 外側へ伸長
+        // 向外侧延伸
         this.customBarDrawer(ctx, -halfThickness, -halfH, barThickness, halfH);
-        // 内側へ伸長 (反転)
+        // 向内侧延伸 (翻转)
         ctx.save();
         ctx.scale(1, -1);
         this.customBarDrawer(ctx, -halfThickness, -halfH, barThickness, halfH);
@@ -1005,7 +1005,7 @@ export class AudioVisualizer {
   }
 
   /**
-   * 円型3 (円形・内側伸長) の描画を行います
+   * 进行圆型3 (圆形・向内延伸) 的绘制
    * @param {CanvasRenderingContext2D} ctx
    * @param {HTMLCanvasElement} canvas
    * @param {Uint16Array} barHeights
@@ -1042,10 +1042,10 @@ export class AudioVisualizer {
   }
 
   /**
-   * 指定したインデックスのフレームをCanvasに描画します
-   * @param {number} frameIndex - フレーム番号
-   * @param {HTMLCanvasElement} canvas - 描画先Canvas
-   * @param {CanvasRenderingContext2D} ctx - 2D描画コンテキスト
+   * 将指定索引的帧绘制到 Canvas
+   * @param {number} frameIndex - 帧编号
+   * @param {HTMLCanvasElement} canvas - 绘制目标 Canvas
+   * @param {CanvasRenderingContext2D} ctx - 2D 绘制上下文
    */
   drawFrame(frameIndex, canvas, ctx) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);

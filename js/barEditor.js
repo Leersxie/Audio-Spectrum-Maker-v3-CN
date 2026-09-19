@@ -1,6 +1,6 @@
 /**
- * バーエディターモジュール (AviUtl風エフェクトスタックシステム)
- * 波形描画用のバー画像（テクスチャ）を生成・編集・ダウンロードする機能を提供します。
+ * 条柱编辑器模块 (AviUtl 风格特效堆栈系统)
+ * 提供生成・编辑・下载波形绘制用条柱图像（纹理）的功能。
  */
 
 import {
@@ -9,10 +9,10 @@ import {
   MAX_LIGHTNESS_LIMIT
 } from './constants.js';
 
-// 基本デフォルト定数
+// 基本默认常量
 const DEFAULT_BAR_WIDTH = 24;
 const DEFAULT_BAR_HEIGHT = 240;
-const DEFAULT_BORDER_RADIUS = 100; // 0% (長方形) 〜 100% (端が丸な棒)
+const DEFAULT_BORDER_RADIUS = 100; // 0% (矩形) 〜 100% (圆角边缘的条柱)
 const DEFAULT_BASE_COLOR = '#38bdf8';
 
 const HEX_COLOR_COMPONENT_MAX = 255;
@@ -20,7 +20,7 @@ const HEX_RADIX = 16;
 const HEX_PAD_LENGTH = 2;
 
 /**
- * HEXカラー文字列をRGB成分の数値タプルに変換する純粋関数
+ * 将 HEX 颜色字符串转换为 RGB 分量数值元组的纯函数
  * @param {string} hex
  * @returns {[number, number, number]}
  */
@@ -38,7 +38,7 @@ export function hexToRgbComponents(hex) {
 }
 
 /**
- * RGB成分からHEXカラー文字列を生成する純粋関数
+ * 由 RGB 分量生成 HEX 颜色字符串的纯函数
  * @param {number} r
  * @param {number} g
  * @param {number} b
@@ -53,7 +53,7 @@ export function rgbToHex(r, g, b) {
 }
 
 /**
- * 2つのHEXカラーを比率(0〜1)で線形補間する純粋関数
+ * 按比率(0〜1)对两个 HEX 颜色进行线性插值的纯函数
  * @param {string} color1
  * @param {string} color2
  * @param {number} ratio
@@ -70,7 +70,7 @@ export function interpolateHexColors(color1, color2, ratio) {
 }
 
 /**
- * 利用可能なエフェクトのメタデータ定義
+ * 可用特效的元数据定义
  */
 export const EFFECT_DEFINITIONS = {
   border: {
@@ -105,7 +105,7 @@ export const EFFECT_DEFINITIONS = {
       color2: '#ec4899',
       color3: '#a855f7',
       useThreeColors: false,
-      angle: 0, // 0: 上から下, 90: 左から右
+      angle: 0, // 0: 从上到下, 90: 从左到右
       opacity: 100
     }
   },
@@ -149,18 +149,18 @@ export class BarEditor {
     this.borderRadius = DEFAULT_BORDER_RADIUS;
     this.baseColor = DEFAULT_BASE_COLOR;
 
-    // AviUtl風エフェクトスタック
-    // 各要素: { id, type, name, enabled, params }
+    // AviUtl 风格特效堆栈
+    // 各元素: { id, type, name, enabled, params }
     this.effects = [];
 
-    // IDインクリメント用
+    // 用于 ID 自增
     this._nextEffectId = 1;
   }
 
   /**
-   * エフェクトをスタックに追加します
+   * 向堆栈添加特效
    * @param {'border' | 'glow' | 'gradient' | 'shapeArray' | 'rgbShift' | 'texture'} type
-   * @returns {Object} 追加されたエフェクトインスタンス
+   * @returns {Object} 已添加的特效实例
    */
   addEffect(type) {
     const def = EFFECT_DEFINITIONS[type];
@@ -186,7 +186,7 @@ export class BarEditor {
   }
 
   /**
-   * エフェクトをスタックから削除します
+   * 从堆栈中删除特效
    * @param {string} effectId
    */
   removeEffect(effectId) {
@@ -197,10 +197,10 @@ export class BarEditor {
   }
 
   /**
-   * エフェクトの順序を変更します
-   * @param {number} fromIndex - 移動元インデックス
-   * @param {number} toIndex - 移動先インデックス
-   * @returns {boolean} 移動が実行されたかどうか
+   * 更改特效的顺序
+   * @param {number} fromIndex - 移动源索引
+   * @param {number} toIndex - 移动目标索引
+   * @returns {boolean} 是否已执行移动
    */
   moveEffect(fromIndex, toIndex) {
     if (
@@ -218,7 +218,7 @@ export class BarEditor {
   }
 
   /**
-   * 指定IDのエフェクトを1つ上へ移動します（適用順を早くする）
+   * 将指定 ID 的特效向上移动一位（使应用顺序更早）
    * @param {string} effectId
    * @returns {boolean}
    */
@@ -231,7 +231,7 @@ export class BarEditor {
   }
 
   /**
-   * 指定IDのエフェクトを1つ下へ移動します（適用順を遅くする）
+   * 将指定 ID 的特效向下移动一位（使应用顺序更晚）
    * @param {string} effectId
    * @returns {boolean}
    */
@@ -244,7 +244,7 @@ export class BarEditor {
   }
 
   /**
-   * エフェクトの有効/無効を切り替えます
+   * 切换特效的启用/禁用
    * @param {string} effectId
    * @param {boolean} enabled
    */
@@ -256,7 +256,7 @@ export class BarEditor {
   }
 
   /**
-   * エフェクトのパラメータを更新します
+   * 更新特效的参数
    * @param {string} effectId
    * @param {string} paramKey
    * @param {*} value
@@ -269,7 +269,7 @@ export class BarEditor {
   }
 
   /**
-   * グラデーションのカラーストップ配列を安全に正規化して取得します
+   * 安全地规范化获取渐变的颜色停靠点数组
    * @param {Object} params
    * @returns {Array<{ offset: number, color: string }>}
    */
@@ -277,7 +277,7 @@ export class BarEditor {
     if (Array.isArray(params.stops) && params.stops.length >= 2) {
       return [...params.stops].sort((a, b) => a.offset - b.offset);
     }
-    // 旧プロパティからの安全なフォールバック
+    // 从旧属性进行的安全回退
     const fallbackStops = [
       { offset: 0, color: params.color1 || '#38bdf8' }
     ];
@@ -291,7 +291,7 @@ export class BarEditor {
   }
 
   /**
-   * 指定グラデーションエフェクトに新しいカラーストップを追加します
+   * 向指定渐变特效添加新的颜色停靠点
    * @param {string} effectId
    * @param {number} [offset=0.5]
    * @param {string} [color='#a855f7']
@@ -312,7 +312,7 @@ export class BarEditor {
   }
 
   /**
-   * 指定グラデーションエフェクトからカラーストップを削除します（最低2色は保持）
+   * 从指定渐变特效删除颜色停靠点（至少保留 2 种颜色）
    * @param {string} effectId
    * @param {number} stopIndex
    * @returns {boolean}
@@ -334,9 +334,9 @@ export class BarEditor {
   }
 
   /**
-   * 指定グラデーションエフェクトのカラーストップを更新します
-   * ストップが別のストップを超えて急激に色が反転・断絶するのを防ぎ、
-   * スムーズに隣接ストップを押し出すことで「どんな状況でも滑らかな色変化」を保証します
+   * 更新指定渐变特效的颜色停靠点
+   * 防止某个停靠点越过其他停靠点导致颜色急剧反转・断裂，
+   * 通过平滑地推动相邻停靠点，保证「任何情况下都能平滑地变化颜色」
    * @param {string} effectId
    * @param {number} stopIndex
    * @param {Partial<{ offset: number, color: string }>} updates
@@ -359,23 +359,23 @@ export class BarEditor {
     }
 
     if (typeof updates.offset === 'number') {
-      const MIN_GAP = 0.01; // 1%の最小間隔（急激なハードエッジ・反転ショックを防止）
+      const MIN_GAP = 0.01; // 1% 的最小间距（防止急剧的硬边缘・反转冲击）
       const count = stops.length;
 
-      // 前後のストップ数に応じた有効移動可能範囲を算出
+      // 根据前后停靠点数量计算有效的可移动范围
       const minOffset = stopIndex * MIN_GAP;
       const maxOffset = 1 - (count - 1 - stopIndex) * MIN_GAP;
       const targetOffset = Math.max(minOffset, Math.min(maxOffset, updates.offset));
       stop.offset = targetOffset;
 
-      // 右側ストップの連鎖押し出し（Push）
+      // 右侧停靠点的连锁推动（Push）
       for (let i = stopIndex + 1; i < count; i++) {
         if (stops[i].offset < stops[i - 1].offset + MIN_GAP) {
           stops[i].offset = stops[i - 1].offset + MIN_GAP;
         }
       }
 
-      // 左側ストップの連鎖押し出し（Push）
+      // 左侧停靠点的连锁推动（Push）
       for (let i = stopIndex - 1; i >= 0; i--) {
         if (stops[i].offset > stops[i + 1].offset - MIN_GAP) {
           stops[i].offset = stops[i + 1].offset - MIN_GAP;
@@ -387,8 +387,8 @@ export class BarEditor {
   }
 
   /**
-   * 2つのカラーストップの色順序を安全に交換（スワップ）します
-   * 位置オフセットはそのまま維持するため、色の配置順序を滑らかに変更できます
+   * 安全地交换（swap）两个颜色停靠点的颜色顺序
+   * 由于位置偏移保持不变，可以平滑地更改颜色的排列顺序
    * @param {string} effectId
    * @param {number} indexA
    * @param {number} indexB
@@ -414,7 +414,7 @@ export class BarEditor {
   }
 
   /**
-   * カラーストップの色の順序を任意の位置へ移動します (位置オフセットはスロットごとに維持)
+   * 将颜色停靠点的颜色顺序移动到任意位置 (各槽位的位置偏移保持不变)
    * @param {string} effectId
    * @param {number} fromIndex
    * @param {number} toIndex
@@ -439,14 +439,14 @@ export class BarEditor {
       return false;
     }
 
-    // 各スロットの現在のオフセットを退避
+    // 备份各槽位的当前偏移
     const originalOffsets = stops.map((s) => s.offset);
 
-    // 配列内で要素を移動
+    // 移动数组内的元素
     const [movedStop] = stops.splice(fromIndex, 1);
     stops.splice(toIndex, 0, movedStop);
 
-    // 各スロットのオフセットを再適用（位置関係を維持して色順序をシフト）
+    // 重新应用各槽位的偏移（保持位置关系，移动颜色顺序）
     stops.forEach((s, idx) => {
       s.offset = originalOffsets[idx];
     });
@@ -455,7 +455,7 @@ export class BarEditor {
   }
 
   /**
-   * 全カラーストップを0〜1の間に均等配置します
+   * 将所有颜色停靠点均匀分布于 0〜1 之间
    * @param {string} effectId
    * @returns {boolean}
    */
@@ -479,10 +479,10 @@ export class BarEditor {
   }
 
   /**
-   * 指定グラデーションエフェクトの特定オフセット位置（0〜1）の色を補間して取得します
+   * 插值获取指定渐变特效在特定偏移位置（0〜1）的颜色
    * @param {string} effectId
    * @param {number} offset - 0〜1
-   * @returns {string} HEX色コード
+   * @returns {string} HEX 颜色代码
    */
   getInterpolatedColorAt(effectId, offset) {
     const effect = this.effects.find((e) => e.id === effectId);
@@ -505,7 +505,7 @@ export class BarEditor {
   }
 
   /**
-   * 指定タイプのエフェクトを取得します（最初に見つかったもの）
+   * 获取指定类型的特效（返回最先找到的）
    * @param {string} type
    * @returns {Object|null}
    */
@@ -514,8 +514,8 @@ export class BarEditor {
   }
 
   /**
-   * 現在のエフェクトスタックに基づき、必要なパディング（余白）を計算します
-   * （グロー、縁取り、RGB Shiftによってバー周囲に広がるサイズ）
+   * 根据当前特效堆栈计算所需的填充（留白）
+   * （由发光、描边、RGB 偏移在条柱周围扩展出的尺寸）
    * @param {number} barWidth
    * @returns {{ top: number, bottom: number, left: number, right: number }}
    */
@@ -562,7 +562,7 @@ export class BarEditor {
   }
 
   /**
-   * 角丸長方形のパスを描画します
+   * 绘制圆角矩形的路径
    * @param {CanvasRenderingContext2D} ctx
    * @param {number} x
    * @param {number} y
@@ -586,7 +586,7 @@ export class BarEditor {
   }
 
   /**
-   * 図形集合（Shape Array）の各要素の塗りつぶし幾何形状を描画します
+   * 绘制图形集合（Shape Array）各元素的填充几何形状
    * @param {CanvasRenderingContext2D} ctx
    * @param {number} x
    * @param {number} y
@@ -632,7 +632,7 @@ export class BarEditor {
   }
 
   /**
-   * 図形集合（Shape Array）の各要素の枠線を描画します
+   * 绘制图形集合（Shape Array）各元素的边框
    * @param {CanvasRenderingContext2D} ctx
    * @param {number} x
    * @param {number} y
@@ -676,7 +676,7 @@ export class BarEditor {
   }
 
   /**
-   * テクスチャ画像を指定モードで描画します
+   * 以指定模式绘制纹理图像
    * @param {CanvasRenderingContext2D} ctx
    * @param {HTMLImageElement} img
    * @param {string} mode - 'stretch' | 'tile' | '3-slice'
@@ -696,7 +696,7 @@ export class BarEditor {
         ctx.fillRect(x, y, w, h);
       }
     } else {
-      // 3スライス伸縮 (上下の端の形状比率を保持)
+      // 3 切片伸缩 (保持上下两端的形状比例)
       const imgW = img.width;
       const imgH = img.height;
       const sliceTop = Math.min(safeRadius * 2, imgH * 0.3);
@@ -715,7 +715,7 @@ export class BarEditor {
   }
 
   /**
-   * 指定座標にバー本体を描画します（単体呼び出し用）
+   * 在指定坐标绘制条柱本体 (用于单独调用)
    * @param {CanvasRenderingContext2D} ctx
    * @param {number} x
    * @param {number} y
@@ -729,7 +729,7 @@ export class BarEditor {
   }
 
   /**
-   * 現在の設定に基づき、余白・スタック順のエフェクトをすべて適用した完成スプライトを1枚描画します
+   * 基于当前设置，绘制一张已应用留白・堆栈顺序中所有特效的完整精灵
    * @param {CanvasRenderingContext2D} ctx
    * @param {number} barWidth
    * @param {number} barHeight
@@ -741,12 +741,12 @@ export class BarEditor {
     const barX = paddings.left;
     const barY = paddings.top;
 
-    // 丸みの計算 (0%〜100%)
+    // 圆角计算 (0%〜100%)
     const radiusPercent = Math.max(0, Math.min(100, Number(this.borderRadius) || 0));
     const maxRadius = Math.min(barWidth / 2, barHeight / 2);
     const safeRadius = (maxRadius * radiusPercent) / 100;
 
-    // 有効なエフェクトが無い場合は直接描画（高速パス）
+    // 没有已启用的特效时直接绘制（高速路径）
     const hasActiveEffects = this.effects.some((e) => e.enabled);
     if (!hasActiveEffects) {
       ctx.save();
@@ -757,20 +757,20 @@ export class BarEditor {
       return;
     }
 
-    // 作業用オフスクリーンCanvas
+    // 工作用离屏 Canvas
     const layerCanvas = document.createElement('canvas');
     layerCanvas.width = totalW;
     layerCanvas.height = totalH;
     const lCtx = layerCanvas.getContext('2d');
 
-    // 0. ベースバーの初期描画 (基本色で塗りつぶし)
+    // 0. 基础条柱的初始绘制 (以基本色填充)
     lCtx.save();
     this.drawRoundedRectPath(lCtx, barX, barY, barWidth, barHeight, safeRadius);
     lCtx.fillStyle = this.baseColor;
     lCtx.fill();
     lCtx.restore();
 
-    // 1. スタック順に各エフェクトを適用
+    // 1. 按堆栈顺序应用各特效
     for (let i = 0; i < this.effects.length; i++) {
       const effect = this.effects[i];
       if (!effect.enabled) continue;
@@ -778,11 +778,11 @@ export class BarEditor {
       switch (effect.type) {
         case 'shapeArray': {
           if (effect.params.shapeType === 'image' && effect.params.customImage) {
-            // カスタム小画像集合: 既存領域をクリアして画像を配置
+            // 自定义小图集合: 清除现有区域并放置图像
             lCtx.clearRect(0, 0, totalW, totalH);
             this.drawShapeArrayGeometry(lCtx, barX, barY, barWidth, barHeight, effect, safeRadius);
           } else {
-            // 図形集合（四角形、円、ひし形）: 現在の塗りをセグメント形状でくり抜く
+            // 图形集合（矩形、圆、菱形）: 以分段形状挖空当前的填充
             const maskCanvas = document.createElement('canvas');
             maskCanvas.width = totalW;
             maskCanvas.height = totalH;
@@ -800,14 +800,14 @@ export class BarEditor {
 
         case 'gradient': {
           lCtx.save();
-          // このエフェクトより前に有効なグラデーションがあるか判定
+          // 判断此特效之前是否存在已启用的渐变
           const priorGradient = this.effects
             .slice(0, i)
             .some((e) => e.enabled && e.type === 'gradient');
 
           const opacity = (effect.params.opacity ?? 100) / 100;
           lCtx.globalAlpha = opacity;
-          // 初回はベース色を source-in で置換し、2つ目以降は下のグラデーションの上に source-atop でブレンド
+          // 首次用 source-in 替换基础色，第二次及以后用 source-atop 在下方渐变之上混合
           lCtx.globalCompositeOperation = priorGradient ? 'source-atop' : 'source-in';
 
           const angle = (effect.params.angle || 0) * (Math.PI / 180);
@@ -822,7 +822,7 @@ export class BarEditor {
           const grad = lCtx.createLinearGradient(x0, y0, x1, y1);
           const stops = this.getNormalizedGradientStops(effect.params);
 
-          // 端点補間: 先頭・末尾が端に接していない場合も滑らかに色を連続させる
+          // 端点插值: 即使首尾未贴到端点，也让颜色平滑连续
           if (stops.length > 0) {
             if (stops[0].offset > 0) {
               grad.addColorStop(0, stops[0].color || '#ffffff');
@@ -859,7 +859,7 @@ export class BarEditor {
           lCtx.lineWidth = strokeW;
           lCtx.strokeStyle = effect.params.color || '#ffffff';
 
-          // このエフェクトより前に有効な shapeArray があるか判定
+          // 判断此特效之前是否存在已启用的 shapeArray
           const priorShapeArray = this.effects
             .slice(0, i)
             .reverse()
@@ -880,14 +880,14 @@ export class BarEditor {
           const intensity = Math.min(3, Math.max(1, effect.params.intensity || 1));
           const glowColor = effect.params.color || '#38bdf8';
 
-          // 現在の内容を退避
+          // 备份当前内容
           const tempCanvas = document.createElement('canvas');
           tempCanvas.width = totalW;
           tempCanvas.height = totalH;
           const tCtx = tempCanvas.getContext('2d');
           tCtx.drawImage(layerCanvas, 0, 0);
 
-          // 発光の描画
+          // 绘制发光
           lCtx.clearRect(0, 0, totalW, totalH);
           lCtx.save();
           lCtx.shadowColor = glowColor;
@@ -897,7 +897,7 @@ export class BarEditor {
           }
           lCtx.restore();
 
-          // 発光の上に退避した元画像を重ねる（本体の輪郭をクリアに保持）
+          // 在发光之上叠加备份的原图像 (保持本体轮廓清晰)
           lCtx.drawImage(tempCanvas, 0, 0);
           break;
         }
@@ -926,12 +926,12 @@ export class BarEditor {
       }
     }
 
-    // 最終結果を出力先Ctxに転写
+    // 将最终结果转写到输出目标 ctx
     ctx.drawImage(layerCanvas, 0, 0);
   }
 
   /**
-   * 単一バーを指定キャンバスに描画します（プレビュー用）
+   * 在指定画布上绘制单一条柱 (用于预览)
    * @param {HTMLCanvasElement} targetCanvas
    * @param {number} drawWidth
    * @param {number} drawHeight
@@ -951,13 +951,13 @@ export class BarEditor {
   }
 
   /**
-   * 現在の設定から、1〜maxHeight のすべての高さに対するバー画像を事前レンダリング（ベイク）します
-   * グロー等の余白で下に隙間が生じないよう、ローテーションセンター（底面中央アンカー）で補正します
-   * ピーク輝度スケールに応じて、バーの高さごとに明度を変調したスプライトを事前生成します
-   * @param {number} maxHeight - 最大高さ
-   * @param {number} barWidth - バー幅
-   * @param {number} peakBrightnessScale - ピーク輝度スケール
-   * @param {number} canvasHeight - 輝度計算の基準となるキャンバス高さ
+   * 根据当前设置，对所有高度 1〜maxHeight 的条柱图像进行预渲染（预烘焙）
+   * 为避免发光等留白在下侧产生空隙，以旋转中心（底面中央锚点）进行修正
+   * 根据峰值辉度比例，预先生成按条柱高度调整明度的精灵
+   * @param {number} maxHeight - 最大高度
+   * @param {number} barWidth - 条柱宽度
+   * @param {number} peakBrightnessScale - 峰值辉度比例
+   * @param {number} canvasHeight - 作为辉度计算基准的画布高度
    * @returns {{ paddings: Object, rotationCenter: Object, sprites: HTMLCanvasElement[], draw: Function }}
    */
   bakeSpriteCache(
@@ -999,8 +999,8 @@ export class BarEditor {
       sprites[h] = offscreen;
     }
 
-    // ローテーションセンター（回転中心 / アンカーポイント）:
-    // バー本来の「底辺中央」を原点とする！
+    // 旋转中心（回转中心 / 锚点）:
+    // 以条柱本来的「底边中央」为原点！
     const rotationCenter = {
       x: paddings.left + barWidth / 2,
       getY: (h) => paddings.top + h
@@ -1011,21 +1011,21 @@ export class BarEditor {
       rotationCenter,
       sprites,
       /**
-       * 事前レンダリングされたキャッシュから高速に描画します
-       * 底辺を正確に合わせるため、アンカー補正を行って描画します
+       * 从预渲染的缓存高速绘制
+       * 为了精确对齐底边，进行锚点修正后绘制
        * @param {CanvasRenderingContext2D} targetCtx
-       * @param {number} x - バーの本来の左端X座標
-       * @param {number} y - バーの本来の上端Y座標
-       * @param {number} w - バー幅
-       * @param {number} h - バー高さ
+       * @param {number} x - 条柱本来的左端 X 坐标
+       * @param {number} y - 条柱本来的顶端 Y 坐标
+       * @param {number} w - 条柱宽度
+       * @param {number} h - 条柱高度
        */
       draw(targetCtx, x, y, w, h) {
         if (h <= 0) return;
         const targetH = Math.min(maxHeight, Math.max(1, Math.round(h)));
         const sprite = sprites[targetH];
         if (sprite) {
-          // 左端パディング分と上端パディング分をオフセットして描画
-          // これにより、下側に paddings.bottom がどれだけあっても底辺が波形のベースラインに完全に一致します
+          // 偏移左端填充量和顶端填充量后绘制
+          // 这样无论下侧的 paddings.bottom 有多大，底边都能与波形的基准线完全一致
           targetCtx.drawImage(sprite, x - paddings.left, y - paddings.top);
         }
       }
@@ -1033,7 +1033,7 @@ export class BarEditor {
   }
 
   /**
-   * 現在の設定から独立したテクスチャ Canvas を生成します
+   * 依据当前设置生成独立的纹理 Canvas
    * @returns {HTMLCanvasElement}
    */
   createTextureCanvas() {
@@ -1043,8 +1043,8 @@ export class BarEditor {
   }
 
   /**
-   * 現在のバー画像を透過PNGファイルとしてダウンロードします
-   * @param {string} filename - 保存ファイル名
+   * 将当前条柱图像下载为透明 PNG 文件
+   * @param {string} filename - 保存文件名
    */
   downloadAsPng(filename = 'waveform_bar.png') {
     const exportCanvas = this.createTextureCanvas();
@@ -1062,7 +1062,7 @@ export class BarEditor {
   }
 
   /**
-   * プリセットを適用します
+   * 应用预设
    * @param {'neon' | 'led' | 'cyberpunk' | 'fire' | 'solid'} presetName
    */
   applyPreset(presetName) {

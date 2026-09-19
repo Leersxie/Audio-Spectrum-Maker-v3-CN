@@ -1,6 +1,6 @@
 /**
- * メインアプリケーションモジュール
- * UIイベントのハンドリング、高速オフライン解析、プレビュー再生の連携を担当します。
+ * 主应用程序模块
+ * 负责 UI 事件处理、高速离线分析、预览播放的联动。
  */
 
 import { hexToHsl, debounce } from './utils.js';
@@ -16,7 +16,7 @@ import { AudioVisualizer } from './audioVisualizer.js';
 import { loadBaseSb3, exportAsWaveformTxt, exportAsScratchSb3 } from './exporter.js';
 import { BarEditor } from './barEditor.js';
 
-// DOM要素の参照
+// DOM 元素的引用
 const audioFileInput = document.getElementById('audioFile');
 const selectedFileNameDisplay = document.getElementById('selectedFileNameDisplay');
 const audioPlayer = document.getElementById('audioPlayer');
@@ -30,25 +30,25 @@ const logToggleButton = document.getElementById('logToggleButton');
 const logContainer = document.getElementById('logContainer');
 const logMessages = document.getElementById('logMessages');
 
-// ローディングオーバーレイ関連要素
+// 加载遮罩层相关元素
 const loadingOverlay = document.getElementById('loadingOverlay');
 const loadingMessage = document.getElementById('loadingMessage');
 const loadingSubMessage = document.getElementById('loadingSubMessage');
 
-// プログレスバー関連要素
+// 进度条相关元素
 const progressContainer = document.getElementById('progressContainer');
 const progressStatusText = document.getElementById('progressStatusText');
 const progressPercentText = document.getElementById('progressPercentText');
 const progressBar = document.getElementById('progressBar');
 
-// テーマ切り替え関連 (Google Material You / M3 仕様)
+// 主题切换相关 (Google Material You / M3 规范)
 const STORAGE_KEY_THEME = 'waveform_maker_theme';
 const themeToggleButton = document.getElementById('themeToggleButton');
 const themeSunIcon = document.getElementById('themeSunIcon');
 const themeMoonIcon = document.getElementById('themeMoonIcon');
 
 /**
- * 指定されたテーマ ('light' | 'dark') をドキュメントおよびUIに適用します
+ * 将指定的主题 ('light' | 'dark') 应用到文档及 UI
  * @param {'light' | 'dark'} theme
  */
 function applyTheme(theme) {
@@ -60,7 +60,7 @@ function applyTheme(theme) {
     document.documentElement.classList.remove('dark');
   }
 
-  // ☀️/🌙 アイコンの切り替え (ダーク時は太陽アイコンでライトに戻せることを示唆)
+  // ☀️/🌙 图标的切换 (深色时用太阳图标暗示可切回浅色)
   if (themeSunIcon && themeMoonIcon) {
     if (isDark) {
       themeSunIcon.classList.remove('hidden');
@@ -79,7 +79,7 @@ function applyTheme(theme) {
 }
 
 /**
- * テーマの初期化 (localStorage または OS 設定から反映)
+ * 主题的初始化 (从 localStorage 或 OS 设置反映)
  */
 function initTheme() {
   let savedTheme = null;
@@ -104,7 +104,7 @@ function initTheme() {
     });
   }
 
-  // OS 設定変更の監視
+  // 监控 OS 设置变更
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
     let currentSaved = null;
     try {
@@ -116,7 +116,7 @@ function initTheme() {
   });
 }
 
-// 設定入力要素の参照
+// 设置输入元素的引用
 const previewModeSelect = document.getElementById('previewModeSelect');
 const minFreqInput = document.getElementById('minFreqInput');
 const maxFreqInput = document.getElementById('maxFreqInput');
@@ -131,7 +131,7 @@ const freqCompensationInput = document.getElementById('freqCompensationInput');
 const fpsInput = document.getElementById('fpsInput');
 const intervalInput = document.getElementById('intervalInput');
 
-// アプリケーション状態
+// 应用程序状态
 const visualizer = new AudioVisualizer();
 const barEditor = new BarEditor();
 let isCustomBarApplied = false;
@@ -141,8 +141,8 @@ let baseSb3Content = null;
 let previewAnimationFrameId = null;
 
 /**
- * 現在のバーエディター設定でスプライトキャッシュをベイクし、ビジュアライザーに適用します
- * @param {number} targetWidth - バーの太さ (px)
+ * 使用当前的条柱编辑器设置预烘焙精灵缓存，并应用到可视化器
+ * @param {number} targetWidth - 条柱的粗细 (px)
  */
 function applyBarEditorToVisualizer(targetWidth, targetBrightness) {
   const width = Math.max(1, targetWidth || barEditor.width || DEFAULT_BAR_THICKNESS);
@@ -167,9 +167,9 @@ function applyBarEditorToVisualizer(targetWidth, targetBrightness) {
 }
 
 /**
- * 操作ブロック用のローディングオーバーレイを表示します
- * @param {string} message - メインメッセージ
- * @param {string} subMessage - 補足メッセージ
+ * 显示用于阻塞操作的加载遮罩层
+ * @param {string} message - 主消息
+ * @param {string} subMessage - 补充消息
  */
 function showLoading(message, subMessage = '') {
   if (!loadingOverlay) return;
@@ -177,14 +177,14 @@ function showLoading(message, subMessage = '') {
   if (loadingSubMessage) loadingSubMessage.textContent = subMessage;
 
   loadingOverlay.classList.remove('hidden');
-  // トランジション用の遅延
+  // 用于过渡的延迟
   requestAnimationFrame(() => {
     loadingOverlay.classList.remove('opacity-0', 'pointer-events-none');
   });
 }
 
 /**
- * ローディングオーバーレイを非表示にし、画面操作を解除します
+ * 隐藏加载遮罩层并解除界面操作锁定
  */
 function hideLoading() {
   if (!loadingOverlay) return;
@@ -195,9 +195,9 @@ function hideLoading() {
 }
 
 /**
- * ログコンテナにメッセージを追加します（innerHTMLは使用せず安全にDOM操作を行います）
- * @param {string} message - ログ本文
- * @param {'info' | 'warning' | 'error'} type - ログ種別
+ * 向日志容器添加消息 (不使用 innerHTML，安全地进行 DOM 操作)
+ * @param {string} message - 日志正文
+ * @param {'info' | 'warning' | 'error'} type - 日志类型
  */
 function logMessage(message, type = 'info') {
   const messageElement = document.createElement('div');
@@ -216,9 +216,9 @@ function logMessage(message, type = 'info') {
 let canvasMorphRafId = null;
 
 /**
- * 波形プレビュー形式に応じてCanvasの表示領域スタイル (正方形/横長) を切り替えます
- * CSS トランジション期間中、requestAnimationFrame で内部解像度を同期し滑らかなモーフィングを実現します
- * @param {string} previewMode - プレビュー形式
+ * 根据波形预览形式切换 Canvas 的显示区域样式 (正方形/横向)
+ * 在 CSS 过渡期间，通过 requestAnimationFrame 同步内部分辨率，实现平滑的变形效果
+ * @param {string} previewMode - 预览形式
  */
 function updateCanvasLayoutForPreviewMode(previewMode) {
   const targetClass = PREVIEW_MODE_CLASS_MAP[previewMode] || PREVIEW_MODE_CLASS_MAP[DEFAULT_PREVIEW_MODE];
@@ -235,7 +235,7 @@ function updateCanvasLayoutForPreviewMode(previewMode) {
     function stepMorph(currentTime) {
       const elapsed = currentTime - startTime;
       const isDone = elapsed >= morphDurationMs;
-      // モーフィング中はスプライト再ベイクをスキップして60FPSを維持し、終了時に1回だけ実行
+      // 变形过程中跳过精灵重新预烘焙以维持 60FPS，并在结束时仅执行一次
       resizeCanvas(!isDone);
       if (!isDone) {
         canvasMorphRafId = requestAnimationFrame(stepMorph);
@@ -248,7 +248,7 @@ function updateCanvasLayoutForPreviewMode(previewMode) {
 }
 
 /**
- * モーダルダイアログを滑らかなスケール＆フェードアニメーションで開きます
+ * 通过平滑的缩放＆淡入淡出动画打开模态对话框
  * @param {HTMLElement} modalElement
  */
 function openModalSmooth(modalElement) {
@@ -260,7 +260,7 @@ function openModalSmooth(modalElement) {
 }
 
 /**
- * モーダルダイアログを滑らかなスケール＆フェードアニメーションで閉じます
+ * 通过平滑的缩放＆淡入淡出动画关闭模态对话框
  * @param {HTMLElement} modalElement
  */
 function closeModalSmooth(modalElement) {
@@ -272,8 +272,8 @@ function closeModalSmooth(modalElement) {
 }
 
 /**
- * 入力フォームから最新の設定値を取得し、ビジュアライザーに反映します
- * キャッシュされたデータが存在する場合は瞬時に再計算され、Canvasプレビューが更新されます
+ * 从输入表单获取最新设置值并反映到可视化器
+ * 若存在缓存数据，则立即重新计算并更新 Canvas 预览
  */
 function updateSettingsFromUi() {
   const previewMode = previewModeSelect ? previewModeSelect.value : DEFAULT_PREVIEW_MODE;
@@ -284,7 +284,7 @@ function updateSettingsFromUi() {
     : DEFAULT_BAR_THICKNESS;
   const peakBrightness = parseFloat(peakBrightnessInput.value);
 
-  // カスタムバー適用中の場合は、ピーク輝度が変更されたら即座に再ベイクして波形に反映
+  // 应用自定义条柱时，若峰值辉度发生变更则立即重新预烘焙并反映到波形
   if (isCustomBarApplied && barEditor.lastBakedBrightness !== peakBrightness) {
     applyBarEditorToVisualizer(barThickness, peakBrightness);
   }
@@ -316,8 +316,8 @@ function updateSettingsFromUi() {
 }
 
 /**
- * Canvas の描画領域サイズを要素の表示サイズに同期します
- * @param {boolean} skipRebake - アニメーション中のスプライト再ベイクを一時抑制するか
+ * 将 Canvas 的绘制区域大小同步为元素的显示大小
+ * @param {boolean} skipRebake - 是否暂时抑制动画期间的精灵重新预烘焙
  */
 function resizeCanvas(skipRebake = false) {
   const newWidth = canvas.offsetWidth;
@@ -338,7 +338,7 @@ function resizeCanvas(skipRebake = false) {
 }
 
 /**
- * 音声再生に合わせたプレビュー描画アニメーションループ
+ * 与音频播放同步的预览绘制动画循环
  */
 function startPreviewLoop() {
   if (previewAnimationFrameId) {
@@ -358,7 +358,7 @@ function startPreviewLoop() {
 }
 
 /**
- * 高速オフライン解析の実行
+ * 执行高速离线分析
  */
 async function handleStartFastAnalysis() {
   if (!decodedAudioBuffer) {
@@ -395,7 +395,7 @@ async function handleStartFastAnalysis() {
       recordStartButtonText.textContent = '重新解析';
     }
 
-    // 解析直後の先頭フレームをCanvasにプレビュー描画
+    // 将分析完成后的首帧在 Canvas 上预览绘制
     visualizer.drawAtTime(audioPlayer.currentTime, canvas, ctx);
     hideLoading();
   } catch (error) {
@@ -408,12 +408,12 @@ async function handleStartFastAnalysis() {
 }
 
 /**
- * 保存処理を実行します
+ * 执行保存处理
  */
 async function handleSave() {
   const selectedFormatElement = document.querySelector('input[name="recordFormat"]:checked');
   const selectedFormat = selectedFormatElement ? selectedFormatElement.value : 'waveform';
-  // バックグラウンドで非同期再計算が実行中の場合は完了を待機
+  // 若后台正在进行异步重算，则等待其完成
   if (visualizer.isRecomputing) {
     showLoading('正在生成波形数据...', '正在用最新参数计算所有帧');
     try {
@@ -473,7 +473,7 @@ async function handleSave() {
 const INITIAL_FILE_DISPLAY_TEXT = '请选择音频文件 (.mp3, .wav, .aac, .flac ...)';
 
 /**
- * オーディオファイル選択イベントのハンドラー
+ * 音频文件选择事件的处理函数
  */
 async function handleAudioFileChange(event) {
   const file = event.target.files[0];
@@ -502,7 +502,7 @@ async function handleAudioFileChange(event) {
         `解码完成 (播放时长: ${Math.round(decodedAudioBuffer.duration)}秒)。将自动开始高速解析...`
       );
 
-      // ファイル選択後に自動で高速解析を実行
+      // 选择文件后自动执行高速分析
       await handleStartFastAnalysis();
     } catch (decodeError) {
       console.error('オーディオデコードエラー:', decodeError);
@@ -523,7 +523,7 @@ async function handleAudioFileChange(event) {
 }
 
 /**
- * バーエディターのUIおよび機能セットアップ (AviUtl風エフェクトスタック)
+ * 条柱编辑器的 UI 及功能设置 (AviUtl 风格特效堆栈)
  */
 function setupBarEditor() {
   const openBarEditorButton = document.getElementById('openBarEditorButton');
@@ -533,14 +533,14 @@ function setupBarEditor() {
   const barPreviewWrapper = document.getElementById('barPreviewWrapper');
   const previewBgButtons = document.querySelectorAll('.preview-bg-btn');
 
-  // 基本設定要素 (スライダー ＋ 数値入力)
+  // 基本设置元素 (滑杆 ＋ 数值输入)
   const baseBarWidthRange = document.getElementById('baseBarWidthRange');
   const baseBarWidthInput = document.getElementById('baseBarWidthInput');
   const baseBorderRadiusRange = document.getElementById('baseBorderRadiusRange');
   const baseBorderRadiusInput = document.getElementById('baseBorderRadiusInput');
   const baseColorInput = document.getElementById('baseColorInput');
 
-  // エフェクトスタック管理要素
+  // 特效堆栈管理元素
   const availableEffectsSelect = document.getElementById('availableEffectsSelect');
   const addEffectButton = document.getElementById('addEffectButton');
   const effectCardsContainer = document.getElementById('effectCardsContainer');
@@ -550,11 +550,11 @@ function setupBarEditor() {
   const resetBarEditorButton = document.getElementById('resetBarEditorButton');
   const presetButtons = document.querySelectorAll('.preset-btn');
 
-  // ドラッグ＆ドロップ管理用変数
+  // 拖放管理用变量
   let draggedCardIndex = null;
   let draggedStopIndex = null;
 
-  // プレビュー背景色切り替え (市松 / 黒 / 白)
+  // 预览背景色切换 (棋盘格 / 黑 / 白)
   previewBgButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
       const bgType = btn.getAttribute('data-bg');
@@ -574,7 +574,7 @@ function setupBarEditor() {
     });
   });
 
-  // プリセットのアクティブ表示管理
+  // 预设的激活显示管理
   function setPresetActive(presetName) {
     presetButtons.forEach((btn) => {
       if (btn.getAttribute('data-preset') === presetName) {
@@ -603,7 +603,7 @@ function setupBarEditor() {
     if (baseColorInput) baseColorInput.value = barEditor.baseColor;
   }
 
-  // 基本設定の双方向バインド (太さ: スライダー ＋ 数値入力)
+  // 基本设置的双向绑定 (粗细: 滑杆 ＋ 数值输入)
   if (baseBarWidthRange && baseBarWidthInput) {
     baseBarWidthRange.addEventListener('input', () => {
       const val = parseInt(baseBarWidthRange.value, 10) || 24;
@@ -621,7 +621,7 @@ function setupBarEditor() {
     });
   }
 
-  // 基本設定の双方向バインド (丸み: スライダー ＋ 数値入力)
+  // 基本设置的双向绑定 (圆角: 滑杆 ＋ 数值输入)
   if (baseBorderRadiusRange && baseBorderRadiusInput) {
     baseBorderRadiusRange.addEventListener('input', () => {
       const val = parseInt(baseBorderRadiusRange.value, 10);
@@ -650,14 +650,14 @@ function setupBarEditor() {
   }
 
   /**
-   * スライダー ＋ インライン単位付き数値入力欄のUIセットを生成します
+   * 生成滑杆 ＋ 内联单位数值输入栏的 UI 组合
    * @param {Object} options
    * @param {number} options.min
    * @param {number} options.max
    * @param {number} [options.step=1]
    * @param {number} options.value
-   * @param {string} options.suffix - 単位文字列 ('px', '%', '°')
-   * @param {Function} options.onInput - 値変更コールバック
+   * @param {string} options.suffix - 单位字符串 ('px', '%', '°')
+   * @param {Function} options.onInput - 值变更回调
    * @returns {HTMLElement}
    */
   function createSliderWithNumberInput({ min, max, step = 1, value, suffix, onInput }) {
@@ -712,18 +712,18 @@ function setupBarEditor() {
   }
 
   /**
-   * AviUtl風エフェクトカードのDOMを生成します (No innerHTML 厳守)
+   * 生成 AviUtl 风格特效卡片的 DOM (严格不使用 innerHTML)
    * @param {Object} effect
-   * @param {number} index - スタック内の順序インデックス
-   * @param {number} totalCount - エフェクトの総数
+   * @param {number} index - 堆栈内的顺序索引
+   * @param {number} totalCount - 特效的总数
    * @returns {HTMLElement}
    */
   function createEffectCardElement(effect, index = 0, totalCount = 1) {
     const card = document.createElement('div');
     card.className = 'effect-card theme-surface-card border theme-border rounded-xl overflow-hidden shadow-sm transition-all';
-    card.draggable = false; // ハンドル操作時のみ有効化
+    card.draggable = false; // 仅在操作手柄时启用
 
-    // ドラッグ＆ドロップ並び替えイベントリスナー
+    // 拖放排序事件监听器
     card.addEventListener('dragstart', (e) => {
       if (draggedStopIndex !== null) {
         e.preventDefault();
@@ -746,7 +746,7 @@ function setupBarEditor() {
     });
 
     card.addEventListener('dragover', (e) => {
-      // カラーストップのドラッグ中、またはカードドラッグ中でない場合は完全に無視
+      // 颜色停靠点拖动中，或非卡片拖动时完全忽略
       if (draggedCardIndex === null || draggedStopIndex !== null) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
@@ -795,14 +795,14 @@ function setupBarEditor() {
       renderPreview();
     });
 
-    // 1. カードヘッダー
+    // 1. 卡片头部
     const header = document.createElement('div');
     header.className = 'flex items-center justify-between theme-surface-container-low px-3 py-2 border-b theme-border';
 
     const headerLeft = document.createElement('div');
     headerLeft.className = 'flex items-center gap-2';
 
-    // 適用順序バッジ (#1, #2, ...)
+    // 应用顺序徽标 (#1, #2, ...)
     const orderBadge = document.createElement('span');
     orderBadge.className = 'text-[10px] font-mono font-semibold theme-accent theme-surface-card border theme-border px-2 py-0.5 rounded-full shrink-0';
     orderBadge.textContent = `#${index + 1}`;
@@ -825,11 +825,11 @@ function setupBarEditor() {
     headerLeft.appendChild(enableCheckbox);
     headerLeft.appendChild(titleSpan);
 
-    // ヘッダー右側（ドラッグマーク ＋ 削除ボタン）
+    // 头部右侧 (拖动标记 ＋ 删除按钮)
     const headerRight = document.createElement('div');
     headerRight.className = 'flex items-center gap-1';
 
-    // ドラッグマーク (⠿) - このマークをつかんだ時だけカードドラッグを有効化
+    // 拖动标记 (⠿) - 仅当抓住这个标记时才启用卡片拖拽
     const dragHandle = document.createElement('span');
     dragHandle.className = 'drag-handle cursor-grab active:cursor-grabbing px-1.5 py-0.5 rounded text-xs select-none theme-text-secondary hover:text-[var(--color-google-blue)] hover:bg-[var(--surface-container-high)] transition-colors';
     dragHandle.title = '拖拽以调整应用顺序';
@@ -842,7 +842,7 @@ function setupBarEditor() {
       card.draggable = false;
     });
 
-    // 削除ボタン (✕)
+    // 删除按钮 (✕)
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
     deleteBtn.className = 'theme-text-secondary hover:text-[var(--color-google-red)] hover:bg-[var(--surface-container-high)] px-1.5 py-0.5 rounded transition-colors text-xs ml-0.5';
@@ -862,17 +862,17 @@ function setupBarEditor() {
     header.appendChild(headerRight);
     card.appendChild(header);
 
-    // 2. カードボディ (パラメータ設定群)
+    // 2. 卡片主体 (参数设置组)
     const body = document.createElement('div');
     body.className = 'p-3 space-y-2.5 theme-surface-card';
 
-    // タイプごとのパラメータUI構築
+    // 按类型构建参数 UI
     switch (effect.type) {
       case 'border': {
         const row = document.createElement('div');
         row.className = 'grid grid-cols-1 sm:grid-cols-12 gap-4 items-center';
 
-        // 線の太さ (スライダー ＋ 数値入力)
+        // 线条粗细 (滑杆 ＋ 数值输入)
         const widthCol = document.createElement('div');
         widthCol.className = 'sm:col-span-8 min-w-0';
         const widthLabel = document.createElement('label');
@@ -892,7 +892,7 @@ function setupBarEditor() {
         widthCol.appendChild(widthLabel);
         widthCol.appendChild(widthSliderUi);
 
-        // 枠線の色
+        // 边框颜色
         const colorCol = document.createElement('div');
         colorCol.className = 'sm:col-span-4 min-w-0';
         const colorLabel = document.createElement('label');
@@ -920,7 +920,7 @@ function setupBarEditor() {
         const row = document.createElement('div');
         row.className = 'grid grid-cols-1 sm:grid-cols-12 gap-4 items-center';
 
-        // 発光色
+        // 发光颜色
         const colorCol = document.createElement('div');
         colorCol.className = 'sm:col-span-3 min-w-0';
         const colorLabel = document.createElement('label');
@@ -938,7 +938,7 @@ function setupBarEditor() {
         colorCol.appendChild(colorLabel);
         colorCol.appendChild(colorInput);
 
-        // ぼかし幅 (スライダー ＋ 数値入力)
+        // 模糊宽度 (滑杆 ＋ 数值输入)
         const blurCol = document.createElement('div');
         blurCol.className = 'sm:col-span-6 min-w-0';
         const blurLabel = document.createElement('label');
@@ -958,7 +958,7 @@ function setupBarEditor() {
         blurCol.appendChild(blurLabel);
         blurCol.appendChild(blurSliderUi);
 
-        // 強度 (Bloom)
+        // 强度 (Bloom)
         const intensityCol = document.createElement('div');
         intensityCol.className = 'sm:col-span-3 min-w-0';
         const intensityLabel = document.createElement('label');
@@ -994,7 +994,7 @@ function setupBarEditor() {
       }
 
       case 'gradient': {
-        // グラデーションのstops初期化保証
+        // 确保渐变停下点数组初始化
         if (!Array.isArray(effect.params.stops)) {
           effect.params.stops = barEditor.getNormalizedGradientStops(effect.params);
         }
@@ -1005,7 +1005,7 @@ function setupBarEditor() {
         const gradContainer = document.createElement('div');
         gradContainer.className = 'space-y-2.5';
 
-        // 1. 角度設定行 (独立した行で配置し重なりを防止)
+        // 1. 角度设置行 (独立成行以避免重叠)
         const angleRow = document.createElement('div');
         angleRow.className = 'flex items-center justify-between gap-4 pb-2.5 border-b theme-border';
 
@@ -1041,7 +1041,7 @@ function setupBarEditor() {
           renderPreview();
         });
 
-        // クイック角度ボタン (0°, 90°, 45°)
+        // 快捷角度按钮 (0°, 90°, 45°)
         const quickAngles = [
           { label: '↓ 0°', val: 0 },
           { label: '→ 90°', val: 90 },
@@ -1066,7 +1066,7 @@ function setupBarEditor() {
         angleRow.appendChild(quickBtns);
         gradContainer.appendChild(angleRow);
 
-        // 2. 不透明度設定行 (スライダー ＋ 数値入力)
+        // 2. 不透明度设置行 (滑杆 ＋ 数值输入)
         const opacityRow = document.createElement('div');
         opacityRow.className = 'flex items-center gap-3 pb-2.5 border-b theme-border';
 
@@ -1089,7 +1089,7 @@ function setupBarEditor() {
         opacityRow.appendChild(opSliderUi);
         gradContainer.appendChild(opacityRow);
 
-        // 3. ミニプレビューバー ＆ ピン操作トラック (Figma/Photoshop風インタラクション)
+        // 3. 迷你预览条＆固定点操作轨道 (Figma/Photoshop 风格交互)
         const previewArea = document.createElement('div');
         previewArea.className = 'w-full space-y-1';
 
@@ -1098,13 +1098,13 @@ function setupBarEditor() {
         barHint.textContent = '点击条柱可添加固定点，拖拽固定点可调整位置';
         previewArea.appendChild(barHint);
 
-        // ミニプレビューバー本体 (クリックでピン追加)
+        // 迷你预览条本体 (点击添加固定点)
         const previewBar = document.createElement('div');
         previewBar.className = 'w-full h-5 rounded-lg border theme-border shadow-inner cursor-crosshair transition-all relative overflow-hidden';
         previewBar.title = '点击添加颜色停靠点';
         previewArea.appendChild(previewBar);
 
-        // ピントラック (ピンが左右に動くトラック)
+        // 固定点轨道 (固定点左右移动的轨道)
         const pinTrack = document.createElement('div');
         pinTrack.className = 'grad-pin-track';
         previewArea.appendChild(pinTrack);
@@ -1113,14 +1113,14 @@ function setupBarEditor() {
 
         let selectedStopIndex = 0;
 
-        // ミニプレビュー更新関数
+        // 迷你预览更新函数
         function updateMiniPreview() {
           const stops = barEditor.getNormalizedGradientStops(effect.params);
           const stopStrs = stops.map((s) => `${s.color} ${(s.offset * 100).toFixed(1)}%`);
           previewBar.style.background = `linear-gradient(to right, ${stopStrs.join(', ')})`;
         }
 
-        // ピントラックの全ピン位置を更新
+        // 更新固定点轨道上所有固定点的位置
         function updateAllPinPositions() {
           const pins = pinTrack.querySelectorAll('.grad-pin');
           effect.params.stops.forEach((stop, i) => {
@@ -1132,7 +1132,7 @@ function setupBarEditor() {
           });
         }
 
-        // 選択中ピンのUIハイライト更新関数（DOM再生成を行わずクラスのみ切り替え）
+        // 选中固定点的 UI 高亮更新函数 (不重建 DOM，仅切换类名)
         function selectPin(indexToSelect) {
           selectedStopIndex = indexToSelect;
           const pins = pinTrack.querySelectorAll('.grad-pin');
@@ -1146,7 +1146,7 @@ function setupBarEditor() {
           highlightStopRow(indexToSelect);
         }
 
-        // ピントラックのピン群を描画
+        // 绘制固定点轨道上的固定点集合
         function renderPins() {
           pinTrack.replaceChildren();
           const stops = effect.params.stops;
@@ -1167,7 +1167,7 @@ function setupBarEditor() {
             pin.appendChild(arrow);
             pin.appendChild(pinBody);
 
-            // ピンドラッグ操作 (Pointer Captureで滑らかに追従)
+            // 固定点拖动操作 (通过 Pointer Capture 平滑跟随)
             pin.addEventListener('pointerdown', (e) => {
               e.stopPropagation();
               e.preventDefault();
@@ -1210,7 +1210,7 @@ function setupBarEditor() {
           });
         }
 
-        // ピントラックの空き領域クリック時: 最も近いピンを選択してその位置へ移動
+        // 点击固定点轨道空白区域时: 选中最近的固定点并移动到该位置
         pinTrack.addEventListener('pointerdown', (e) => {
           if (e.target.closest('.grad-pin')) return;
           const trackRect = pinTrack.getBoundingClientRect();
@@ -1238,7 +1238,7 @@ function setupBarEditor() {
           renderStopsList();
         });
 
-        // バー本体クリックでピン追加
+        // 点击条柱本体以添加固定点
         previewBar.addEventListener('click', (e) => {
           const rect = previewBar.getBoundingClientRect();
           const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -1252,7 +1252,7 @@ function setupBarEditor() {
           renderPreview();
         });
 
-        // 4. カラーストップ一覧コンテナ
+        // 4. 颜色停靠点列表容器
         const stopsContainer = document.createElement('div');
         stopsContainer.className = 'space-y-1.5 max-h-56 overflow-y-auto no-scrollbar pr-1';
         gradContainer.appendChild(stopsContainer);
@@ -1282,7 +1282,7 @@ function setupBarEditor() {
 
         let draggedStopIndex = null;
 
-        // カラーストップ行の再描画関数
+        // 颜色停靠点行的重绘函数
         function renderStopsList() {
           stopsContainer.replaceChildren();
           stopInputs = [];
@@ -1294,9 +1294,9 @@ function setupBarEditor() {
             row.className = `grad-stop-row flex items-center gap-2.5 theme-surface-container-low px-3 py-2 rounded-lg border theme-border text-xs transition-all ${
               sIdx === selectedStopIndex ? 'ring-1 ring-[var(--color-google-blue)] bg-[var(--color-google-blue-light)]' : ''
             }`;
-            row.draggable = false; // ハンドル操作時のみ有効化
+            row.draggable = false; // 仅在操作手柄时启用
 
-            // ドラッグ＆ドロップ並び替えイベントリスナー (親カードへの伝播を完全遮断)
+            // 拖放排序事件监听器 (完全阻断向父卡片的传播)
             row.addEventListener('dragstart', (e) => {
               e.stopPropagation();
               if (draggedCardIndex !== null) {
@@ -1322,7 +1322,7 @@ function setupBarEditor() {
 
             row.addEventListener('dragover', (e) => {
               e.stopPropagation();
-              // カードドラッグ中、またはストップドラッグ中でない場合は完全に無視
+              // 卡片拖动中，或非停靠点拖动时完全忽略
               if (draggedStopIndex === null || draggedCardIndex !== null) return;
               e.preventDefault();
               e.dataTransfer.dropEffect = 'move';
@@ -1382,12 +1382,12 @@ function setupBarEditor() {
               highlightStopRow(sIdx);
             });
 
-            // 番号バッジ
+            // 编号徽标
             const badge = document.createElement('span');
             badge.className = 'font-mono text-[11px] font-semibold theme-accent w-6 text-center shrink-0';
             badge.textContent = `#${sIdx + 1}`;
 
-            // カラーピッカー
+            // 颜色选择器
             const colorInput = document.createElement('input');
             colorInput.type = 'color';
             colorInput.value = stop.color;
@@ -1400,7 +1400,7 @@ function setupBarEditor() {
               renderPreview();
             });
 
-            // 位置スライダー (0〜100%)
+            // 位置滑杆 (0〜100%)
             const rangeInput = document.createElement('input');
             rangeInput.type = 'range';
             rangeInput.min = '0';
@@ -1408,7 +1408,7 @@ function setupBarEditor() {
             rangeInput.value = Math.round(stop.offset * 100);
             rangeInput.className = 'flex-1 min-w-[80px] accent-[#1A73E8] cursor-pointer h-1.5 bg-[var(--surface-container-high)] rounded';
 
-            // 位置数値入力 (サフィックス付き)
+            // 位置数值输入 (带后缀)
             const numSuffixGroup = document.createElement('div');
             numSuffixGroup.className = 'input-suffix-group w-16 shrink-0';
             const numInput = document.createElement('input');
@@ -1425,7 +1425,7 @@ function setupBarEditor() {
 
             stopInputs.push({ range: rangeInput, num: numInput });
 
-            // スライダー操作イベント（押し出し同期）
+            // 滑杆操作事件 (推进同步)
             rangeInput.addEventListener('input', () => {
               const val = parseInt(rangeInput.value, 10) || 0;
               barEditor.updateGradientStop(effect.id, sIdx, { offset: val / 100 });
@@ -1446,7 +1446,7 @@ function setupBarEditor() {
               renderPreview();
             });
 
-            // ドラッグマーク (⠿) - このマークをつかんだ時だけストップドラッグを有効化
+            // 拖动标记 (⠿) - 仅当抓住这个标记时才启用停靠点拖拽
             const stopDragHandle = document.createElement('span');
             stopDragHandle.className = 'drag-handle cursor-grab active:cursor-grabbing px-1.5 py-0.5 rounded text-xs select-none theme-text-secondary hover:text-[var(--color-google-blue)] hover:bg-[var(--surface-container-high)] transition-colors shrink-0';
             stopDragHandle.title = '拖拽以更改颜色顺序';
@@ -1460,7 +1460,7 @@ function setupBarEditor() {
               row.draggable = false;
             });
 
-            // 削除ボタン (最低2色は保持)
+            // 删除按钮 (至少保留 2 个颜色)
             const delBtn = document.createElement('button');
             delBtn.type = 'button';
             delBtn.title = stops.length <= MIN_STOPS ? '至少需要保留 2 个颜色停靠点' : '删除此停靠点';
@@ -1498,7 +1498,7 @@ function setupBarEditor() {
         renderPins();
         updateMiniPreview();
 
-        // 5. 下段: 「＋ 色を追加」ボタン & 「均等配置」ボタン
+        // 5. 下方:「＋ 添加颜色」按钮 &「均等分布」按钮
         const actionsRow = document.createElement('div');
         actionsRow.className = 'flex items-center justify-between gap-2 pt-2 border-t theme-border';
 
@@ -1567,7 +1567,7 @@ function setupBarEditor() {
         typeCol.appendChild(typeLabel);
         typeCol.appendChild(typeSelect);
 
-        // 要素サイズ (スライダー ＋ 数値入力)
+        // 元素尺寸 (滑杆 ＋ 数值输入)
         const sizeCol = document.createElement('div');
         sizeCol.className = 'sm:col-span-4 min-w-0';
         const sizeLabel = document.createElement('label');
@@ -1587,7 +1587,7 @@ function setupBarEditor() {
         sizeCol.appendChild(sizeLabel);
         sizeCol.appendChild(sizeSliderUi);
 
-        // 隙間 (スライダー ＋ 数値入力)
+        // 间隙 (滑杆 ＋ 数值输入)
         const gapCol = document.createElement('div');
         gapCol.className = 'sm:col-span-4 min-w-0';
         const gapLabel = document.createElement('label');
@@ -1612,7 +1612,7 @@ function setupBarEditor() {
         row.appendChild(gapCol);
         body.appendChild(row);
 
-        // カスタム画像アップロード (画像選択時のみ)
+        // 自定义图片上传 (仅在选择图片时)
         const imgRow = document.createElement('div');
         imgRow.className = effect.params.shapeType === 'image' ? 'pt-1' : 'pt-1 hidden';
         const imgInput = document.createElement('input');
@@ -1647,7 +1647,7 @@ function setupBarEditor() {
         const row = document.createElement('div');
         row.className = 'grid grid-cols-1 sm:grid-cols-2 gap-4 items-center';
 
-        // シフト量 (スライダー ＋ 数値入力)
+        // 错位量 (滑杆 ＋ 数值输入)
         const shiftCol = document.createElement('div');
         shiftCol.className = 'min-w-0';
         const shiftLabel = document.createElement('label');
@@ -1667,7 +1667,7 @@ function setupBarEditor() {
         shiftCol.appendChild(shiftLabel);
         shiftCol.appendChild(shiftSliderUi);
 
-        // 方向角度 (スライダー ＋ 数値入力)
+        // 方向角度 (滑杆 ＋ 数值输入)
         const angleCol = document.createElement('div');
         angleCol.className = 'min-w-0';
         const angleLabel = document.createElement('label');
@@ -1698,7 +1698,7 @@ function setupBarEditor() {
         const row = document.createElement('div');
         row.className = 'space-y-3';
 
-        // 画像選択
+        // 图片选择
         const fileRow = document.createElement('div');
         const fileLabel = document.createElement('label');
         fileLabel.className = 'text-xs theme-text-secondary block mb-1 font-medium';
@@ -1722,7 +1722,7 @@ function setupBarEditor() {
         fileRow.appendChild(fileLabel);
         fileRow.appendChild(fileInput);
 
-        // 方式と不透明度
+        // 方式与不透明度
         const optRow = document.createElement('div');
         optRow.className = 'grid grid-cols-1 sm:grid-cols-2 gap-3 items-center pt-1';
 
@@ -1785,7 +1785,7 @@ function setupBarEditor() {
   }
 
   /**
-   * エフェクトカード一覧を再描画します (No innerHTML 厳守)
+   * 重绘特效卡片列表 (严格不使用 innerHTML)
    */
   function renderEffectCards() {
     if (!effectCardsContainer) return;
@@ -1806,7 +1806,7 @@ function setupBarEditor() {
     });
   }
 
-  // 「＋ 追加」ボタン
+  // 「＋ 添加」按钮
   if (addEffectButton && availableEffectsSelect) {
     addEffectButton.addEventListener('click', () => {
       const type = availableEffectsSelect.value;
@@ -1819,7 +1819,7 @@ function setupBarEditor() {
     });
   }
 
-  // プリセット選択
+  // 预设选择
   presetButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
       const preset = btn.getAttribute('data-preset');
@@ -1833,7 +1833,7 @@ function setupBarEditor() {
     });
   });
 
-  // モーダル開閉 (滑らかなアニメーション)
+  // 模态框开合 (平滑动画)
   if (openBarEditorButton && barEditorModal) {
     openBarEditorButton.addEventListener('click', () => {
       openModalSmooth(barEditorModal);
@@ -1849,7 +1849,7 @@ function setupBarEditor() {
     });
   }
 
-  // モーダル背景クリック時およびEscキーでのスマートクローズ
+  // 点击模态框背景及按 Esc 键时的智能关闭
   if (barEditorModal) {
     barEditorModal.addEventListener('click', (e) => {
       if (e.target === barEditorModal) {
@@ -1864,7 +1864,7 @@ function setupBarEditor() {
     });
   }
 
-  // 波形描画に適用
+  // 应用到波形绘制
   if (applyBarToVisualizerButton && barEditorModal) {
     applyBarToVisualizerButton.addEventListener('click', () => {
       showLoading('正在预烘焙条柱图像...', '正在生成各高度的精灵缓存');
@@ -1887,7 +1887,7 @@ function setupBarEditor() {
     });
   }
 
-  // 透過PNG画像保存
+  // 保存透明 PNG 图片
   if (downloadBarPngButton) {
     downloadBarPngButton.addEventListener('click', () => {
       barEditor.downloadAsPng('waveform_bar.png');
@@ -1895,7 +1895,7 @@ function setupBarEditor() {
     });
   }
 
-  // デフォルト単色リセット (確認ダイアログ付き)
+  // 默认单色重置 (带确认对话框)
   if (resetBarEditorButton) {
     resetBarEditorButton.addEventListener('click', () => {
       const confirmed = window.confirm(
@@ -1915,13 +1915,13 @@ function setupBarEditor() {
     });
   }
 
-  // 初期状態: 基本設定のみ（エフェクトなし）で表示
+  // 初始状态: 仅显示基本设置 (无特效)
   syncBaseUi();
   renderEffectCards();
   renderPreview();
   setPresetActive('solid');
 
-  // ドラッグマークのクリック＆キャンセル時の安全リセット
+  // 拖动标记的点击＆取消时的安全重置
   window.addEventListener('pointerup', () => {
     document.querySelectorAll('.effect-card, .grad-stop-row').forEach((el) => {
       el.draggable = false;
@@ -1930,7 +1930,7 @@ function setupBarEditor() {
 }
 
 /**
- * アプリケーションの初期化
+ * 应用程序的初始化
  */
 async function initializeApp() {
   initTheme();
@@ -1940,7 +1940,7 @@ async function initializeApp() {
 
   updateSettingsFromUi();
 
-  // 各設定入力要素のイベントリスナー登録（入力変更時に即座に再計算・プレビュー更新）
+  // 注册各设置输入元素的事件监听器 (输入变更时立即重新计算・更新预览)
   const settingInputs = [
     previewModeSelect,
     minFreqInput,
@@ -1957,7 +1957,7 @@ async function initializeApp() {
     intervalInput
   ];
 
-  // 入力途中の連続再計算によるフリーズを防ぐため、input イベントにはデバウンスを適用
+  // 为防止输入过程中连续重算导致卡顿，对 input 事件应用防抖
   const debouncedUpdateSettings = debounce(
     updateSettingsFromUi,
     SETTINGS_INPUT_DEBOUNCE_MS
@@ -1969,13 +1969,13 @@ async function initializeApp() {
     input.addEventListener('change', updateSettingsFromUi);
   });
 
-  // バーエディターの初期化と連携
+  // 条柱编辑器的初始化与联动
   setupBarEditor();
 
-  // 音声ファイル選択
+  // 音频文件选择
   audioFileInput.addEventListener('change', handleAudioFileChange);
 
-  // 再生制御（プレビュー再生ループとの同期）
+  // 播放控制 (与预览播放循环同步)
   audioPlayer.addEventListener('play', async () => {
     await visualizer.resumeContext();
     startPreviewLoop();
@@ -2010,20 +2010,20 @@ async function initializeApp() {
     }
   });
 
-  // 高速解析開始ボタン
+  // 高速分析开始按钮
   recordStartButton.addEventListener('click', handleStartFastAnalysis);
 
-  // 保存ボタン
+  // 保存按钮
   saveBarHeightsButton.addEventListener('click', handleSave);
 
-  // ログ開閉ボタン
+  // 日志开合按钮
   if (logToggleButton && logContainer) {
     logToggleButton.addEventListener('click', () => {
       logContainer.classList.toggle('active');
     });
   }
 
-  // 抜け殻.sb3 の初期ロード
+  // 模板 .sb3 的初始加载
   try {
     baseSb3Content = await loadBaseSb3();
     logMessage('.sb3 文件加载完成。');
@@ -2044,5 +2044,5 @@ async function initializeApp() {
   }
 }
 
-// ページのロード完了時に起動
+// 页面加载完成时启动
 window.addEventListener('DOMContentLoaded', initializeApp);

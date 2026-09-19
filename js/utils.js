@@ -1,6 +1,6 @@
 /**
- * ユーティリティモジュール
- * 色変換やID生成などの共通処理を提供する純粋関数群です。
+ * 工具模块
+ * 提供颜色转换、ID 生成等通用处理的一批纯函数。
  */
 
 const HEX_COLOR_SHORT_LENGTH = 4;
@@ -10,8 +10,8 @@ const HUE_CIRCLE_DEGREES = 360;
 const PERCENT_SCALE = 100;
 
 /**
- * 16進数カラーコードを HSL 配列 [h (0-360), s (0-100), l (0-100)] に変換する純粋関数
- * @param {string} hex - 16進数カラーコード (例: #ff3165, #f00)
+ * 将十六进制颜色代码转换为 HSL 数组 [h (0-360), s (0-100), l (0-100)] 的纯函数
+ * @param {string} hex - 十六进制颜色代码 (例: #ff3165, #f00)
  * @returns {[number, number, number]} [h, s, l]
  */
 export function hexToHsl(hex) {
@@ -66,8 +66,8 @@ export function hexToHsl(hex) {
 }
 
 /**
- * UUID v4 形式のランダム文字列を生成します
- * @returns {string} UUID文字列
+ * 生成 UUID v4 格式的随机字符串
+ * @returns {string} UUID字符串
  */
 export function generateUuid() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -81,10 +81,10 @@ export function generateUuid() {
 }
 
 /**
- * 指定時間内の連続呼び出しを抑制し、最後の呼び出しから指定時間経過後に実行するデバウンス関数
- * @param {Function} func - 実行対象の関数
- * @param {number} waitMs - 待機時間（ミリ秒）
- * @returns {Function} デバウンス化された関数
+ * 抑制指定时间内的连续调用，在最后一次调用后经过指定时间再执行的防抖函数
+ * @param {Function} func - 要执行的函数
+ * @param {number} waitMs - 等待时间（毫秒）
+ * @returns {Function} 已被防抖化的函数
  */
 export function debounce(func, waitMs) {
   let timeoutId = null;
