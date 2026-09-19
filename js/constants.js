@@ -78,7 +78,7 @@ export const STAGE_TARGET_LIST_NAME = '#频谱数据';
 export const SB3_REPLACE_TARGET_AUDIO_NAME = '音源';
 export const SB3_AUDIO_INTERNAL_FILENAME = '663a96719183b9aa6e9c010d161487c5.mp3';
 export const BASE_SB3_LOCAL_URL = './模板.sb3';
-export const BASE_SB3_REMOTE_URL = 'https://raw.githubusercontent.com/Leersxie/Audio-Spectrum-Maker-v3-CN-beta/main/%E6%A8%A1%E6%9D%BF.sb3';
+export const BASE_SB3_REMOTE_URL = 'https://raw.githubusercontent.com/Leersxie/Audio-Spectrum-Maker-v3-CN/main/%E6%A8%A1%E6%9D%BF.sb3';
 
 // 波形プレビュー表示形式
 export const PREVIEW_MODE = {
@@ -109,4 +109,3 @@ export const CIRCLE_BAR_SCALE_IN = 0.50;
 export const ANGLE_OFFSET_TOP = -Math.PI / 2;
 export const FULL_CIRCLE_RADIAN = Math.PI * 2;
 export const HALF_DIVISOR = 2;
-
