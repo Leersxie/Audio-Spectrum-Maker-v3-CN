@@ -463,69 +463,10 @@ async function handleSave() {
         settingsHeader
       );
       logMessage('波形数据已保存为 audio_spectrum.sb3。');
-
-      // Scratch 预览开关开启时，在模态框内通过 TurboWarp Player 一键预览
-      const scratchPreviewToggle = document.getElementById('scratchPreviewToggle');
-      if (scratchPreviewToggle && scratchPreviewToggle.checked) {
-        await openScratchPreview(newSb3Blob);
-      }
     }
   } catch (error) {
     console.error('保存処理中にエラーが発生しました:', error);
     logMessage(`保存失败: ${error.message}`, 'error');
-  }
-}
-
-/**
- * Scratch 预览播放: 在模态框内把生成的 .sb3 加载到 TurboWarp Player
- */
-async function openScratchPreview(sb3Blob) {
-  const scratchPreviewModal = document.getElementById('scratchPreviewModal');
-  const scratchPreviewIframe = document.getElementById('scratchPreviewIframe');
-  if (!scratchPreviewModal || !scratchPreviewIframe) {
-    return;
-  }
-
-  scratchPreviewModal.classList.remove('hidden');
-
-  try {
-    const projectData = await sb3Blob.arrayBuffer();
-    const sendProject = () => {
-      if (!scratchPreviewIframe.contentWindow) return;
-      scratchPreviewIframe.contentWindow.postMessage(
-        { type: 'load', data: projectData },
-        window.location.origin
-      );
-    };
-
-    // iframe 尚未加载完成时，等待其 load 事件后再发送项目数据
-    if (
-      scratchPreviewIframe.contentDocument &&
-      scratchPreviewIframe.contentDocument.readyState === 'complete'
-    ) {
-      sendProject();
-    } else {
-      scratchPreviewIframe.addEventListener('load', sendProject, { once: true });
-    }
-  } catch (error) {
-    console.error('Scratch 预览加载失败:', error);
-    logMessage(`Scratch 预览加载失败: ${error.message}`, 'error');
-  }
-}
-
-function closeScratchPreview() {
-  const scratchPreviewModal = document.getElementById('scratchPreviewModal');
-  if (scratchPreviewModal) {
-    scratchPreviewModal.classList.add('hidden');
-  }
-  // 停止预览 iframe 内的播放（防止关闭后仍发声）
-  const scratchPreviewIframe = document.getElementById('scratchPreviewIframe');
-  if (scratchPreviewIframe && scratchPreviewIframe.contentWindow) {
-    try {
-      scratchPreviewIframe.contentWindow.postMessage({ type: 'stop' }, window.location.origin);
-    } catch (error) {
-      console.warn('Scratch 预览停止失败:', error);
-    }
   }
 }
 
@@ -2079,16 +2020,6 @@ async function initializeApp() {
   if (logToggleButton && logContainer) {
     logToggleButton.addEventListener('click', () => {
       logContainer.classList.toggle('active');
-    });
-  }
-
-  // Scratch 预览模态框关闭按钮
-  const closeScratchPreviewButton = document.getElementById('closeScratchPreviewButton');
-  const scratchPreviewModal = document.getElementById('scratchPreviewModal');
-  if (closeScratchPreviewButton && scratchPreviewModal) {
-    closeScratchPreviewButton.addEventListener('click', closeScratchPreview);
-    scratchPreviewModal.addEventListener('click', (e) => {
-      if (e.target === scratchPreviewModal) closeScratchPreview();
     });
   }
 
