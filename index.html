@@ -148,11 +148,6 @@
           <input type="radio" name="recordFormat" value="sb3" class="accent-[#1A73E8] cursor-pointer">
           <span class="ml-1.5 theme-text-primary">以 .sb3 记录 (Scratch)</span>
         </label>
-        <!-- Scratch 预览开关: 关闭后完全隐藏, 不干扰新版简洁 UI -->
-        <label class="inline-flex items-center cursor-pointer" title="开启后, 生成 .sb3 时可一键在弹窗内预览播放">
-          <input type="checkbox" id="scratchPreviewToggle" class="accent-[#1A73E8] cursor-pointer" checked>
-          <span class="ml-1.5 theme-text-primary">Scratch 预览</span>
-        </label>
       </div>
     </div>
 
@@ -401,29 +396,6 @@
             应用到波形绘制
           </button>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Scratch 预览播放模态框 (内嵌 TurboWarp Player) -->
-  <div id="scratchPreviewModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-40 hidden p-4">
-    <div class="theme-surface-dialog border theme-border rounded-3xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
-      <div class="flex items-center justify-between px-5 py-3 border-b theme-border theme-surface-container-low">
-        <h2 class="text-base font-medium theme-text-primary flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#1A73E8] dark:text-[#8AB4F8]" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M10 2a6 6 0 100 12 6 6 0 000-12zm-1 3a1 1 0 112 0v3.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414L9 8.586V5z" />
-            <path d="M4 14l-2 4h4l-2-4z" opacity="0" />
-          </svg>
-          Scratch 预览播放
-        </h2>
-        <button id="closeScratchPreviewButton" class="btn-icon w-8 h-8" title="关闭">
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div class="flex-grow overflow-hidden bg-black">
-        <iframe id="scratchPreviewIframe" src="./player.html" class="w-full h-[70vh] border-0 block" allow="autoplay; fullscreen"></iframe>
       </div>
     </div>
   </div>
