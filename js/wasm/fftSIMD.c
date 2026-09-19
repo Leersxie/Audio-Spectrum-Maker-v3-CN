@@ -1,10 +1,10 @@
 /**
- * ⑤ WebAssembly + SIMD 高速FFTモジュール (C実装 / Emscripten用)
+ * ⑤ WebAssembly + SIMD 高速 FFT 模块 (C 实现 / 用于 Emscripten)
  *
- * 128bit SIMD (wasm_simd128) による 4×float32 並列バタフライ演算と
- * 実数専用FFT (Real-to-Complex) アルゴリズムを組み合わせた高速実装。
+ * 结合 128bit SIMD (wasm_simd128) 的 4×float32 并行蝶形运算与
+ * 实数专用 FFT (Real-to-Complex) 算法的高速实现。
  *
- * ビルド方法:
+ * 构建方法:
  *   emcc fftSIMD.c -O3 -msimd128 -s WASM=1 -s EXPORTED_FUNCTIONS="['_fft_init','_fft_real_transform','_fft_get_byte_frequency_data','_fft_get_input_ptr','_fft_get_real_out_ptr','_fft_get_imag_out_ptr','_fft_get_byte_out_ptr','_malloc','_free']" -s EXPORTED_RUNTIME_METHODS="['cwrap']" -s ALLOW_MEMORY_GROWTH=0 -s INITIAL_MEMORY=4194304 -o fftSIMD.js
  */
 
@@ -16,7 +16,7 @@
 #include <wasm_simd128.h>
 #endif
 
-/* --- 定数 --- */
+/* --- 常量 --- */
 #define BLACKMAN_ALPHA 0.16f
 #define FFT_MIN_DECIBELS (-100.0f)
 #define FFT_MAX_DECIBELS (-30.0f)
@@ -24,33 +24,33 @@
 #define BYTE_MAX        255
 #define PI              3.14159265358979323846f
 
-/* --- グローバル状態 --- */
+/* --- 全局状态 --- */
 static int g_size = 0;
 static int g_halfSize = 0;
 static int g_quarterSize = 0;
 
-/* テーブル */
-static float* g_cosTable = NULL;      /* N点用 (サイズ: halfSize) */
+/* 查找表 */
+static float* g_cosTable = NULL;      /* N 点用 (大小: halfSize) */
 static float* g_sinTable = NULL;
-static float* g_cosTableHalf = NULL;  /* N/2点用 (サイズ: quarterSize) */
+static float* g_cosTableHalf = NULL;  /* N/2 点用 (大小: quarterSize) */
 static float* g_sinTableHalf = NULL;
-static uint32_t* g_bitReverseHalf = NULL; /* N/2点用 */
-static float* g_window = NULL;        /* Blackman窓 (サイズ: N) */
+static uint32_t* g_bitReverseHalf = NULL; /* N/2 点用 */
+static float* g_window = NULL;        /* Blackman 窗 (大小: N) */
 
-/* I/Oバッファ (ゼロコピー用に公開) */
+/* I/O 缓冲区 (为支持零拷贝而公开) */
 static float* g_inputBuf = NULL;
 static float* g_realOutBuf = NULL;
 static float* g_imagOutBuf = NULL;
 static uint8_t* g_byteOutBuf = NULL;
 
-/* デシベル変換定数 */
+/* 分贝转换常量 */
 static float g_logConstant = 0.0f;
 static const float DB_SCALE_LOG2 = 3.0102999566398f;
 
-/* --- ヘルパー関数 --- */
+/* --- 辅助函数 --- */
 
 /**
- * ビット反転テーブルの構築
+ * 位反转查找表的构建
  */
 static void buildBitReverseTable(uint32_t* table, int n) {
   int bits = 0;
@@ -68,18 +68,18 @@ static void buildBitReverseTable(uint32_t* table, int n) {
   }
 }
 
-/* --- エクスポート関数 --- */
+/* --- 导出函数 --- */
 
 /**
- * FFTエンジンの初期化 (サイズを指定して全テーブルを事前計算)
- * @param size FFTサイズ (2の冪乗)
+ * FFT 引擎的初始化 (指定大小后预计算所有查找表)
+ * @param size FFT 大小 (2 的幂)
  */
 void fft_init(int size) {
   g_size = size;
   g_halfSize = size / 2;
   g_quarterSize = size / 4;
 
-  /* メモリ確保 */
+  /* 内存分配 */
   g_cosTable = (float*)malloc(g_halfSize * sizeof(float));
   g_sinTable = (float*)malloc(g_halfSize * sizeof(float));
   g_cosTableHalf = (float*)malloc(g_quarterSize * sizeof(float));
@@ -91,24 +91,24 @@ void fft_init(int size) {
   g_imagOutBuf = (float*)malloc(size * sizeof(float));
   g_byteOutBuf = (uint8_t*)malloc(g_halfSize * sizeof(uint8_t));
 
-  /* N点回転因子テーブル */
+  /* N 点旋转因子表 */
   for (int i = 0; i < g_halfSize; i++) {
     float angle = (-2.0f * PI * i) / size;
     g_cosTable[i] = cosf(angle);
     g_sinTable[i] = sinf(angle);
   }
 
-  /* N/2点回転因子テーブル */
+  /* N/2 点旋转因子表 */
   for (int i = 0; i < g_quarterSize; i++) {
     float angle = (-2.0f * PI * i) / g_halfSize;
     g_cosTableHalf[i] = cosf(angle);
     g_sinTableHalf[i] = sinf(angle);
   }
 
-  /* ビット反転テーブル (N/2点) */
+  /* 位反转表 (N/2 点) */
   buildBitReverseTable(g_bitReverseHalf, g_halfSize);
 
-  /* Blackman窓関数 */
+  /* Blackman 窗函数 */
   float a0 = 0.5f * (1.0f - BLACKMAN_ALPHA);
   float a1 = 0.5f;
   float a2 = 0.5f * BLACKMAN_ALPHA;
@@ -118,12 +118,12 @@ void fft_init(int size) {
                       + a2 * cosf((4.0f * PI * i) / denom);
   }
 
-  /* デシベル定数 */
+  /* 分贝常量 */
   g_logConstant = 20.0f * log10f((float)size);
 }
 
 /**
- * 実数専用FFT (Real-to-Complex)
+ * 实数专用 FFT (Real-to-Complex)
  * g_inputBuf → g_realOutBuf, g_imagOutBuf
  */
 void fft_real_transform(void) {
@@ -135,7 +135,7 @@ void fft_real_transform(void) {
   float* input = g_inputBuf;
   float* win = g_window;
 
-  /* Step 1: 窓関数 + パッキング + ビット反転 */
+  /* Step 1: 窗函数 + 打包 + 位反转 */
   for (int k = 0; k < m; k++) {
     uint32_t rev = g_bitReverseHalf[k];
     int k2 = k << 1;
@@ -143,17 +143,17 @@ void fft_real_transform(void) {
     iOut[rev] = input[k2 + 1] * win[k2 + 1];
   }
 
-  /* Step 2: N/2点バタフライ (SIMD最適化) */
+  /* Step 2: N/2 点蝶形运算 (SIMD 优化) */
 
   /* Stage 1: len=2 */
 #ifdef __wasm_simd128__
   for (int i = 0; i < m; i += 4) {
-    /* 2ペアを同時処理 (i,i+1) と (i+2,i+3) */
+    /* 同时处理 2 组 (i,i+1) 与 (i+2,i+3) */
     v128_t r0 = wasm_v128_load(&rOut[i]);
     v128_t i0 = wasm_v128_load(&iOut[i]);
 
-    /* [a, b, c, d] → even=[a,c], odd=[b,d] のバタフライ */
-    /* 実際にはスカラーの方が単純なため len=2 はスカラーで処理 */
+    /* [a, b, c, d] → even=[a,c], odd=[b,d] 的蝶形 */
+    /* 实际上标量处理更简单，因此 len=2 用标量处理 */
     float tr0 = rOut[i + 1]; float ti0 = iOut[i + 1];
     rOut[i + 1] = rOut[i] - tr0; iOut[i + 1] = iOut[i] - ti0;
     rOut[i] += tr0; iOut[i] += ti0;
@@ -181,7 +181,7 @@ void fft_real_transform(void) {
     rOut[i + 1] += tr; iOut[i + 1] += ti;
   }
 
-  /* Stage 3+: SIMD バタフライ */
+  /* Stage 3+: SIMD 蝶形 */
   for (int len = 8; len <= m; len <<= 1) {
     int halfLen = len >> 1;
     int step = m / len;
@@ -192,7 +192,7 @@ void fft_real_transform(void) {
       float sinVal = g_sinTableHalf[tableIdx];
 
 #ifdef __wasm_simd128__
-      /* 同一回転因子のバタフライを4ペア同時に SIMD 処理 */
+      /* 将同一旋转因子的蝶形以 4 组同时进行 SIMD 处理 */
       v128_t vCos = wasm_f32x4_splat(cosVal);
       v128_t vSin = wasm_f32x4_splat(sinVal);
 
@@ -236,7 +236,7 @@ void fft_real_transform(void) {
     }
   }
 
-  /* Step 3: アンパック */
+  /* Step 3: 解包 */
   float zr0 = rOut[0], zi0 = iOut[0];
   rOut[0] = zr0 + zi0; iOut[0] = 0.0f;
   rOut[m] = zr0 - zi0; iOut[m] = 0.0f;
@@ -262,7 +262,7 @@ void fft_real_transform(void) {
     iOut[mk] = -ei + jwi;
   }
 
-  /* k = M/2 (自己対称点) */
+  /* k = M/2 (自对称点) */
   {
     int k = mHalf;
     float zrk = rOut[k], zik = iOut[k];
@@ -274,7 +274,7 @@ void fft_real_transform(void) {
 }
 
 /**
- * デシベル変換 + バイト量子化 (SIMD高速版)
+ * 分贝转换 + 字节量化 (SIMD 高速版)
  * g_realOutBuf, g_imagOutBuf → g_byteOutBuf
  */
 void fft_get_byte_frequency_data(float minDb, float maxDb) {
@@ -305,7 +305,7 @@ void fft_get_byte_frequency_data(float minDb, float maxDb) {
   }
 }
 
-/* --- ゼロコピーアクセス用ポインタ取得関数 --- */
+/* --- 用于零拷贝访问的指针获取函数 --- */
 float*   fft_get_input_ptr(void)    { return g_inputBuf; }
 float*   fft_get_real_out_ptr(void) { return g_realOutBuf; }
 float*   fft_get_imag_out_ptr(void) { return g_imagOutBuf; }

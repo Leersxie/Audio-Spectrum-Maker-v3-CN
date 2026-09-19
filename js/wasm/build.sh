@@ -1,8 +1,8 @@
 #!/bin/bash
-# fftSIMD.wasm ビルドスクリプト
-# 前提条件: Emscripten SDK (emsdk) がインストール済みで、emcc にパスが通っていること
+# fftSIMD.wasm 构建脚本
+# 前提条件: 已安装 Emscripten SDK (emsdk)，且 emcc 已加入到 PATH 中
 #
-# インストール方法:
+# 安装方法:
 #   git clone https://github.com/emscripten-core/emsdk.git
 #   cd emsdk
 #   ./emsdk install latest
